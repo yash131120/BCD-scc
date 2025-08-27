@@ -9,24 +9,37 @@ import {
   Twitter,
   Facebook,
   Youtube,
-  Camera
+  Camera,
+  MessageCircle
 } from 'lucide-react';
 import type { Database } from '../lib/supabase';
 
 type SocialLink = Database['public']['Tables']['social_links']['Row'];
 
 interface FormData {
+  // Basic Information
   title: string;
+  username: string;
   company: string;
+  tagline: string;
+  profession: string;
+  avatar_url: string;
+  
+  // Contact Information
   phone: string;
+  whatsapp: string;
   email: string;
   website: string;
-  avatar_url: string;
+  address: string;
+  map_link: string;
+  
+  // Theme and Layout
   theme: {
     primary: string;
     secondary: string;
     background: string;
     text: string;
+    name: string;
   };
   shape: string;
   layout: {
@@ -145,12 +158,28 @@ export const CardPreview: React.FC<CardPreviewProps> = ({ formData, socialLinks 
               >
                 {formData.title || 'Your Name'}
               </h3>
-              {formData.company && (
+              {formData.profession && (
                 <p 
                   className="text-sm opacity-80"
                   style={{ color: formData.theme.secondary }}
                 >
+                  {formData.profession}
+                </p>
+              )}
+              {formData.company && (
+                <p 
+                  className="text-xs opacity-70"
+                  style={{ color: formData.theme.text }}
+                >
                   {formData.company}
+                </p>
+              )}
+              {formData.tagline && (
+                <p 
+                  className="text-xs opacity-60 mt-1"
+                  style={{ color: formData.theme.text }}
+                >
+                  {formData.tagline}
                 </p>
               )}
             </div>
@@ -167,6 +196,12 @@ export const CardPreview: React.FC<CardPreviewProps> = ({ formData, socialLinks 
                 <div className="flex items-center gap-2 text-xs">
                   <Phone className="w-3 h-3" style={{ color: formData.theme.primary }} />
                   <span>{formData.phone}</span>
+                </div>
+              )}
+              {formData.whatsapp && (
+                <div className="flex items-center gap-2 text-xs">
+                  <MessageCircle className="w-3 h-3" style={{ color: formData.theme.primary }} />
+                  <span>WhatsApp</span>
                 </div>
               )}
               {formData.website && (
@@ -210,33 +245,28 @@ export const CardPreview: React.FC<CardPreviewProps> = ({ formData, socialLinks 
       <div className="mt-4 p-3 bg-gray-50 rounded-lg">
         <div className="text-xs text-gray-600 space-y-1">
           <div className="flex justify-between">
+            <span>Username:</span>
+            <span className="font-medium">/{formData.username || 'username'}</span>
+          </div>
+          <div className="flex justify-between">
             <span>Theme:</span>
-            <span className="font-medium">{formData.theme.primary}</span>
+            <span className="font-medium">{formData.theme.name}</span>
           </div>
           <div className="flex justify-between">
-            <span>Font:</span>
-            <span className="font-medium">{formData.layout.font}</span>
+            <span>Profession:</span>
+            <span className="font-medium">{formData.profession || 'Not set'}</span>
           </div>
           <div className="flex justify-between">
-            <span>Shape:</span>
-            <span className="font-medium capitalize">{formData.shape}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Style:</span>
-            <span className="font-medium capitalize">{formData.layout.style}</span>
+            <span>Status:</span>
+            <span className={`font-medium ${formData.is_published ? 'text-green-600' : 'text-gray-600'}`}>
+              {formData.is_published ? 'Published' : 'Draft'}
+            </span>
           </div>
           <div className="flex justify-between">
             <span>Social Links:</span>
             <span className="font-medium">{socialLinks.length}</span>
           </div>
         </div>
-      </div>
-
-      {/* Mobile Preview Toggle */}
-      <div className="mt-4 text-center">
-        <button className="text-xs text-blue-600 hover:text-blue-800 font-medium">
-          View Mobile Preview
-        </button>
       </div>
     </div>
   );
