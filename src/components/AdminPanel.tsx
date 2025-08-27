@@ -38,6 +38,9 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { CardPreview } from './CardPreview';
+import { ImageUpload } from './ImageUpload';
+import { MediaUpload } from './MediaUpload';
+import { ReviewsManager } from './ReviewsManager';
 import type { Database } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
@@ -85,14 +88,20 @@ interface MediaItem {
   url: string;
   title: string;
   description?: string;
+  thumbnail_url?: string;
 }
 
 interface Review {
   id: string;
-  name: string;
+  reviewer_name: string;
+  reviewer_email?: string;
+  reviewer_avatar?: string;
   rating: number;
   comment: string;
-  date: string;
+  source_url?: string;
+  is_verified: boolean;
+  is_featured: boolean;
+  created_at: string;
 }
 
 const SOCIAL_PLATFORMS = [
@@ -226,6 +235,48 @@ export const AdminPanel: React.FC = () => {
 
         if (socialData) {
           setSocialLinks(socialData);
+        }
+
+        // Load media items
+        const { data: mediaData } = await supabase
+          .from('media_items')
+          .select('*')
+          .eq('card_id', cardData.id)
+          .eq('is_active', true)
+          .order('display_order');
+
+        if (mediaData) {
+          setMediaItems(mediaData.map(item => ({
+            id: item.id,
+            type: item.type as 'image' | 'video' | 'document',
+            url: item.url,
+            title: item.title,
+            description: item.description || undefined,
+            thumbnail_url: item.thumbnail_url || undefined
+          })));
+        }
+
+        // Load reviews
+        const { data: reviewsData } = await supabase
+          .from('reviews')
+          .select('*')
+          .eq('card_id', cardData.id)
+          .eq('is_active', true)
+          .order('created_at', { ascending: false });
+
+        if (reviewsData) {
+          setReviews(reviewsData.map(review => ({
+            id: review.id,
+            reviewer_name: review.reviewer_name,
+            reviewer_email: review.reviewer_email || undefined,
+            reviewer_avatar: review.reviewer_avatar || undefined,
+            rating: review.rating,
+            comment: review.comment,
+            source_url: review.source_url || undefined,
+            is_verified: review.is_verified,
+            is_featured: review.is_featured,
+            created_at: review.created_at
+          })));
         }
       } else {
         setHasCard(false);
@@ -588,25 +639,11 @@ export const AdminPanel: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Profile Photo / Logo</label>
-                    <div className="flex items-center gap-4">
-                      {formData.avatar_url ? (
-                        <img
-                          src={formData.avatar_url}
-                          alt="Profile"
-                          className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
-                        />
-                      ) : (
-                        <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200">
-                          <Camera className="w-8 h-8 text-gray-400" />
-                        </div>
-                      )}
-                      <div>
-                        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                          Upload Photo
-                        </button>
-                        <p className="text-xs text-gray-500 mt-1">JPG, PNG up to 5MB</p>
-                      </div>
-                    </div>
+                    <ImageUpload
+                      currentImageUrl={formData.avatar_url}
+                      onImageChange={(url) => setFormData({ ...formData, avatar_url: url || '' })}
+                      userId={user?.id || ''}
+                    />
                   </div>
                 </div>
               </div>
@@ -770,64 +807,39 @@ export const AdminPanel: React.FC = () => {
             {activeTab === 'media' && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Media & Gallery</h2>
-                
-                <div className="space-y-8">
-                  {/* Image Gallery */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Image Gallery</h3>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                      <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 mb-4">Upload business photos, products, certificates</p>
-                      <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                        Upload Images
-                      </button>
-                    </div>
+                {hasCard && businessCard ? (
+                  <MediaUpload
+                    cardId={businessCard.id}
+                    mediaItems={mediaItems}
+                    onMediaChange={setMediaItems}
+                    userId={user?.id || ''}
+                  />
+                ) : (
+                  <div className="text-center py-12">
+                    <Camera className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Save Your Card First</h3>
+                    <p className="text-gray-600">Please save your basic information before adding media files.</p>
                   </div>
-
-                  {/* Video Gallery */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Video Gallery</h3>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                      <Video className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 mb-4">Add YouTube, Instagram, or Vimeo video links</p>
-                      <input
-                        type="url"
-                        placeholder="Paste video URL here"
-                        className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-lg mb-4"
-                      />
-                      <button className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                        Add Video
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Document Gallery */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Document Gallery</h3>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                      <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 mb-4">Upload brochures, PDFs, certificates</p>
-                      <button className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                        Upload Documents
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                )}
               </div>
             )}
 
             {activeTab === 'reviews' && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Customer Reviews</h2>
-                
-                <div className="text-center py-12">
-                  <Star className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Reviews Yet</h3>
-                  <p className="text-gray-600 mb-6">Customer reviews will appear here when available.</p>
-                  <button className="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors">
-                    Request Reviews
-                  </button>
-                </div>
+                {hasCard && businessCard ? (
+                  <ReviewsManager
+                    cardId={businessCard.id}
+                    reviews={reviews}
+                    onReviewsChange={setReviews}
+                  />
+                ) : (
+                  <div className="text-center py-12">
+                    <Star className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Save Your Card First</h3>
+                    <p className="text-gray-600">Please save your basic information before adding reviews.</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -926,7 +938,12 @@ export const AdminPanel: React.FC = () => {
 
           {/* Sidebar - Preview */}
           <div className="lg:sticky lg:top-24 lg:h-fit">
-            <CardPreview formData={formData} socialLinks={socialLinks} />
+            <CardPreview 
+              formData={formData} 
+              socialLinks={socialLinks}
+              mediaItems={mediaItems}
+              reviews={reviews}
+            />
             
             {/* Save Button */}
             <div className="mt-6">
