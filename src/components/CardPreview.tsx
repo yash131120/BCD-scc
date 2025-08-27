@@ -428,7 +428,7 @@ export const CardPreview: React.FC<CardPreviewProps> = ({
               <img
                 src={formData.avatar_url}
                 alt="Profile"
-                className="w-16 h-16 rounded-full object-cover mb-3 border-2"
+                className="w-1 h-1 rounded-full object-cover mb-3 border-2"
                 style={{ borderColor: formData.theme.primary }}
               />
             ) : (
