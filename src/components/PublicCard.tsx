@@ -12,7 +12,9 @@ import {
   QrCode,
   Share2,
   Facebook,
-  Youtube
+  Youtube,
+  MessageCircle,
+  MapPin
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { exportToPNG, exportToPDF, generateQRCode } from '../utils/exportUtils';

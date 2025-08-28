@@ -64,6 +64,9 @@ export interface Database {
           website: string | null
           avatar_url: string | null
           bio: string | null
+          whatsapp: string | null
+          address: string | null
+          map_link: string | null
           theme: Json | null
           shape: string
           layout: Json | null
@@ -84,6 +87,9 @@ export interface Database {
           website?: string | null
           avatar_url?: string | null
           bio?: string | null
+          whatsapp?: string | null
+          address?: string | null
+          map_link?: string | null
           theme?: Json | null
           shape?: string
           layout?: Json | null
@@ -104,6 +110,9 @@ export interface Database {
           website?: string | null
           avatar_url?: string | null
           bio?: string | null
+          whatsapp?: string | null
+          address?: string | null
+          map_link?: string | null
           theme?: Json | null
           shape?: string
           layout?: Json | null

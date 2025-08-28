@@ -135,14 +135,17 @@ const THEMES = [
 
 const SOCIAL_PLATFORMS = [
   'Instagram',
-  'LinkedIn',
-  'GitHub',
-  'Twitter',
   'Facebook',
-  'You Tube',
-  'Website',
-  'WhatsApp',
+  'LinkedIn',
+  'Twitter',
+  'YouTube',
+  'Pinterest',
+  'Snapchat',
+  'TikTok',
   'Telegram',
+  'Discord',
+  'WhatsApp',
+  'GitHub',
   'Custom Link',
 ];
 
