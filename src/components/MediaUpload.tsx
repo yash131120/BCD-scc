@@ -181,50 +181,6 @@ export const MediaUpload: React.FC<MediaUploadProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Upload Area */}
-      <div
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onClick={() => fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200 ${
-          dragOver 
-            ? 'border-blue-500 bg-blue-50' 
-            : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
-        } ${uploading ? 'pointer-events-none opacity-50' : ''}`}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*,video/*,.pdf,.doc,.docx"
-          onChange={(e) => e.target.files && handleFileSelect(e.target.files)}
-          className="hidden"
-        />
-        
-        {uploading ? (
-          <div className="flex flex-col items-center">
-            <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-            <p className="text-gray-600">Uploading files...</p>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center">
-            <Upload className="w-12 h-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Upload Media Files
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Drag and drop files here, or click to browse
-            </p>
-            <div className="flex flex-wrap gap-2 text-sm text-gray-500">
-              <span className="px-2 py-1 bg-gray-100 rounded">Images</span>
-              <span className="px-2 py-1 bg-gray-100 rounded">Videos</span>
-              <span className="px-2 py-1 bg-gray-100 rounded">Documents</span>
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Video URL Input */}
       <div className="bg-gray-50 rounded-lg p-4">
         <h4 className="font-medium text-gray-900 mb-3">Add Video Link</h4>
