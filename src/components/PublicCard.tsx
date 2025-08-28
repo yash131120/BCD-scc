@@ -60,7 +60,7 @@ export const PublicCard: React.FC = () => {
       const { data: cardData, error: cardError } = await supabase
         .from('business_cards')
         .select('*')
-        .eq('id', cardId)
+        .eq('slug', cardId)
         .eq('is_published', true)
         .single();
 
