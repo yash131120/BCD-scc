@@ -199,10 +199,7 @@ export const PublicCard: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {card.title}'s Digital Business Card
-          </h1>
+        <div className="text-center mb-4">
           <p className="text-gray-600">
             Connect with {card.title} through their digital business card
           </p>
