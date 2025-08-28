@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { exportToPNG, exportToPDF, generateQRCode } from '../utils/exportUtils';
+import { generateSocialLink } from '../utils/socialUtils';
 import type { Database } from '../lib/supabase';
 
 type BusinessCard = Database['public']['Tables']['business_cards']['Row'];
@@ -73,7 +74,7 @@ export const PublicCard: React.FC = () => {
       // Fetch social links
       const { data: socialLinks, error: socialError } = await supabase
         .from('social_links')
-        .select('*')
+        .select('*, is_auto_synced')
         .eq('card_id', cardData.id);
 
       if (socialError) {

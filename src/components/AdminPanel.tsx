@@ -31,6 +31,7 @@ import { ImageUpload } from './ImageUpload';
 import { CardPreview } from './CardPreview';
 import { MediaUpload } from './MediaUpload';
 import { ReviewsManager } from './ReviewsManager';
+import { generateSocialLink, extractUsernameFromUrl, isPlatformAutoSyncable, generateAutoSyncedLinks, SOCIAL_PLATFORMS } from '../utils/socialUtils';
 import type { Database } from '../lib/supabase';
 
 type BusinessCard = Database['public']['Tables']['business_cards']['Row'];
@@ -58,6 +59,7 @@ interface FormData {
   // Basic Information
   title: string;
   username: string;
+  globalUsername: string;
   company: string;
   tagline: string;
   profession: string;
@@ -133,22 +135,6 @@ const THEMES = [
   },
 ];
 
-const SOCIAL_PLATFORMS = [
-  'Instagram',
-  'Facebook',
-  'LinkedIn',
-  'Twitter',
-  'YouTube',
-  'Pinterest',
-  'Snapchat',
-  'TikTok',
-  'Telegram',
-  'Discord',
-  'WhatsApp',
-  'GitHub',
-  'Custom Link',
-];
-
 export const AdminPanel: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -165,6 +151,7 @@ export const AdminPanel: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
     title: '',
     username: '',
+    globalUsername: '',
     company: '',
     tagline: '',
     profession: '',
@@ -188,7 +175,6 @@ export const AdminPanel: React.FC = () => {
   const [newSocialLink, setNewSocialLink] = useState({
     platform: '',
     username: '',
-    url: '',
   });
 
   useEffect(() => {
@@ -206,7 +192,7 @@ export const AdminPanel: React.FC = () => {
       // Load profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, global_username')
         .eq('id', user.id)
         .single();
 
@@ -239,6 +225,7 @@ export const AdminPanel: React.FC = () => {
         setFormData({
           title: cardData.title || '',
           username: cardData.slug || '',
+          globalUsername: profileData?.global_username || '',
           company: cardData.company || '',
           tagline: cardData.bio || '',
           profession: cardData.position || '',
@@ -258,7 +245,7 @@ export const AdminPanel: React.FC = () => {
         // Load social links
         const { data: socialData, error: socialError } = await supabase
           .from('social_links')
-          .select('*')
+          .select('*, is_auto_synced')
           .eq('card_id', cardData.id)
           .order('display_order');
 
@@ -271,6 +258,7 @@ export const AdminPanel: React.FC = () => {
         // Set default form data with user email
         setFormData(prev => ({
           ...prev,
+          globalUsername: profileData?.global_username || '',
           email: user.email || '',
           title: profileData?.name || user.email?.split('@')[0] || '',
         }));
@@ -287,6 +275,21 @@ export const AdminPanel: React.FC = () => {
 
     setSaving(true);
     try {
+      // Update profile with global username
+      if (profile) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            name: formData.title,
+            global_username: formData.globalUsername || null,
+          })
+          .eq('id', user.id);
+
+        if (profileError) {
+          console.error('Profile update error:', profileError);
+        }
+      }
+
       let cardId = businessCard?.id;
 
       if (!businessCard) {
@@ -345,20 +348,7 @@ export const AdminPanel: React.FC = () => {
         if (updateError) throw updateError;
       }
 
-      // Update profile if needed
-      if (profile && formData.title !== profile.name) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            name: formData.title,
-          })
-          .eq('id', user.id);
-
-        if (profileError) {
-          console.error('Profile update error:', profileError);
-          // Don't fail the entire save if profile update fails
-        }
-      }
+      // Profile update moved above
 
       alert('Business card saved successfully!');
       await loadUserData(); // Reload data
@@ -371,20 +361,24 @@ export const AdminPanel: React.FC = () => {
   };
 
   const handleAddSocialLink = async () => {
-    if (!businessCard || !newSocialLink.platform || !newSocialLink.url) {
-      alert('Please fill in all social link fields');
+    if (!businessCard || !newSocialLink.platform || !newSocialLink.username) {
+      alert('Please fill in platform and username');
       return;
     }
 
     try {
+      const url = generateSocialLink(newSocialLink.platform, newSocialLink.username);
+      const isAutoSyncable = isPlatformAutoSyncable(newSocialLink.platform);
+      
       const { data, error } = await supabase
         .from('social_links')
         .insert({
           card_id: businessCard.id,
           platform: newSocialLink.platform,
           username: newSocialLink.username,
-          url: newSocialLink.url,
+          url: url,
           display_order: socialLinks.length,
+          is_auto_synced: isAutoSyncable && newSocialLink.username === formData.globalUsername,
         })
         .select()
         .single();
@@ -392,10 +386,127 @@ export const AdminPanel: React.FC = () => {
       if (error) throw error;
 
       setSocialLinks([...socialLinks, data]);
-      setNewSocialLink({ platform: '', username: '', url: '' });
+      setNewSocialLink({ platform: '', username: '' });
     } catch (error) {
       console.error('Error adding social link:', error);
       alert('Failed to add social link. Please try again.');
+    }
+  };
+
+  const handleGlobalUsernameChange = async (newGlobalUsername: string) => {
+    const oldGlobalUsername = formData.globalUsername;
+    setFormData({ ...formData, globalUsername: newGlobalUsername });
+
+    // If we have a business card and the global username changed
+    if (businessCard && oldGlobalUsername !== newGlobalUsername && newGlobalUsername) {
+      try {
+        // Update auto-synced social links
+        const autoSyncedLinks = socialLinks.filter(link => link.is_auto_synced);
+        
+        for (const link of autoSyncedLinks) {
+          if (isPlatformAutoSyncable(link.platform)) {
+            const newUrl = generateSocialLink(link.platform, newGlobalUsername);
+            
+            await supabase
+              .from('social_links')
+              .update({
+                username: newGlobalUsername,
+                url: newUrl,
+              })
+              .eq('id', link.id);
+          }
+        }
+
+        // Reload social links to reflect changes
+        const { data: updatedSocialData } = await supabase
+          .from('social_links')
+          .select('*, is_auto_synced')
+          .eq('card_id', businessCard.id)
+          .order('display_order');
+
+        if (updatedSocialData) {
+          setSocialLinks(updatedSocialData);
+        }
+      } catch (error) {
+        console.error('Error updating auto-synced links:', error);
+      }
+    }
+  };
+
+  const handleAutoSyncSocialLinks = async () => {
+    if (!businessCard || !formData.globalUsername) {
+      alert('Please set a global username first');
+      return;
+    }
+
+    try {
+      const autoSyncedLinks = generateAutoSyncedLinks(formData.globalUsername);
+      const existingPlatforms = socialLinks.map(link => link.platform);
+      
+      // Only add platforms that don't already exist
+      const newLinks = autoSyncedLinks.filter(
+        link => !existingPlatforms.includes(link.platform)
+      );
+
+      if (newLinks.length === 0) {
+        alert('All auto-syncable platforms are already added');
+        return;
+      }
+
+      const insertData = newLinks.map((link, index) => ({
+        card_id: businessCard.id,
+        platform: link.platform,
+        username: link.username,
+        url: link.url,
+        display_order: socialLinks.length + index,
+        is_auto_synced: true,
+      }));
+
+      const { data, error } = await supabase
+        .from('social_links')
+        .insert(insertData)
+        .select();
+
+      if (error) throw error;
+
+      setSocialLinks([...socialLinks, ...data]);
+      alert(`Added ${newLinks.length} auto-synced social links`);
+    } catch (error) {
+      console.error('Error auto-syncing social links:', error);
+      alert('Failed to auto-sync social links. Please try again.');
+    }
+  };
+
+  const handleSocialLinkEdit = async (linkId: string, newUsername: string) => {
+    try {
+      const link = socialLinks.find(l => l.id === linkId);
+      if (!link) return;
+
+      const newUrl = generateSocialLink(link.platform, newUsername);
+      const wasAutoSynced = link.is_auto_synced;
+      
+      // If user manually edits, it's no longer auto-synced
+      const isStillAutoSynced = wasAutoSynced && newUsername === formData.globalUsername;
+
+      const { error } = await supabase
+        .from('social_links')
+        .update({
+          username: newUsername,
+          url: newUrl,
+          is_auto_synced: isStillAutoSynced,
+        })
+        .eq('id', linkId);
+
+      if (error) throw error;
+
+      // Update local state
+      setSocialLinks(socialLinks.map(l => 
+        l.id === linkId 
+          ? { ...l, username: newUsername, url: newUrl, is_auto_synced: isStillAutoSynced }
+          : l
+      ));
+    } catch (error) {
+      console.error('Error updating social link:', error);
     }
   };
 
@@ -560,7 +671,7 @@ export const AdminPanel: React.FC = () => {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Username (for live card) *
+                            Card URL Username *
                           </label>
                           <div className="flex">
                             <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
@@ -578,6 +689,21 @@ export const AdminPanel: React.FC = () => {
                           </div>
                           <p className="text-xs text-gray-500 mt-1">
                             This will be your card's URL: /c/{formData.username || 'yourname'}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Global Username (for social links)
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.globalUsername}
+                            onChange={(e) => handleGlobalUsernameChange(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="yashvavaliya"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            This username will auto-sync across all your social media platforms
                           </p>
                         </div>
                       </div>
@@ -751,10 +877,28 @@ export const AdminPanel: React.FC = () => {
                 {/* Social Links Tab */}
                 {activeTab === 'social' && (
                   <div className="space-y-6">
+                    {/* Global Username Info */}
+                    {formData.globalUsername && (
+                      <div className="bg-blue-50 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium text-blue-900">Global Username: @{formData.globalUsername}</h4>
+                            <p className="text-sm text-blue-700">Auto-synced links will use this username</p>
+                          </div>
+                          <button
+                            onClick={handleAutoSyncSocialLinks}
+                            className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                          >
+                            Auto-Sync All Platforms
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Add New Social Link */}
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h3 className="font-medium text-gray-900 mb-4">Add Social Link</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Platform
@@ -770,7 +914,7 @@ export const AdminPanel: React.FC = () => {
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           >
                             <option value="">Select platform</option>
-                            {SOCIAL_PLATFORMS.map((platform) => (
+                            {Object.keys(SOCIAL_PLATFORMS).map((platform) => (
                               <option key={platform} value={platform}>
                                 {platform}
                               </option>
@@ -779,37 +923,24 @@ export const AdminPanel: React.FC = () => {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Username (optional)
-                          </label>
-                          <input
-                            type="text"
-                            value={newSocialLink.username}
-                            onChange={(e) =>
-                              setNewSocialLink({
-                                ...newSocialLink,
-                                username: e.target.value,
-                              })
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="@username"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            URL
+                            Username/Handle
                           </label>
                           <div className="flex">
                             <input
-                              type="url"
-                              value={newSocialLink.url}
+                              type="text"
+                              value={newSocialLink.username}
                               onChange={(e) =>
                                 setNewSocialLink({
                                   ...newSocialLink,
-                                  url: e.target.value,
+                                  username: e.target.value,
                                 })
                               }
                               className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="https://..."
+                              placeholder={
+                                newSocialLink.platform && SOCIAL_PLATFORMS[newSocialLink.platform]
+                                  ? SOCIAL_PLATFORMS[newSocialLink.platform].placeholder
+                                  : 'username'
+                              }
                             />
                             <button
                               onClick={handleAddSocialLink}
@@ -827,25 +958,38 @@ export const AdminPanel: React.FC = () => {
                       {socialLinks.map((link) => (
                         <div
                           key={link.id}
-                          className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg"
+                          className={`flex items-center justify-between p-4 bg-white border rounded-lg ${
+                            link.is_auto_synced ? 'border-blue-200 bg-blue-50' : 'border-gray-200'
+                          }`}
                         >
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
                               <Globe className="w-5 h-5 text-gray-600" />
                             </div>
                             <div>
-                              <div className="font-medium text-gray-900">
-                                {link.platform}
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-gray-900">{link.platform}</span>
+                                {link.is_auto_synced && (
+                                  <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                                    Auto-synced
+                                  </span>
+                                )}
                               </div>
-                              <div className="text-sm text-gray-500">
-                                {link.username && `@${link.username} • `}
+                              <div className="flex items-center gap-2 mt-1">
+                                <input
+                                  type="text"
+                                  value={link.username || ''}
+                                  onChange={(e) => handleSocialLinkEdit(link.id, e.target.value)}
+                                  className="text-sm px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
+                                  placeholder="username"
+                                />
                                 <a
                                   href={link.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800"
+                                  className="text-blue-600 hover:text-blue-800 text-sm"
                                 >
-                                  {link.url}
+                                  <ExternalLink className="w-4 h-4" />
                                 </a>
                               </div>
                             </div>
@@ -864,7 +1008,15 @@ export const AdminPanel: React.FC = () => {
                       <div className="text-center py-8 text-gray-500">
                         <Share2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                         <p>No social links added yet.</p>
-                        <p className="text-sm">Add your social media profiles to connect with visitors.</p>
+                        <p className="text-sm mb-4">Add your social media profiles to connect with visitors.</p>
+                        {formData.globalUsername && (
+                          <button
+                            onClick={handleAutoSyncSocialLinks}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            Auto-Sync with @{formData.globalUsername}
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

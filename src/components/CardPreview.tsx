@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import type { Database } from "../lib/supabase";
 import html2canvas from "html2canvas";
+import { generateSocialLink } from "../utils/socialUtils";
 
 type SocialLink = Database["public"]["Tables"]["social_links"]["Row"];
 
@@ -47,6 +48,7 @@ interface FormData {
   // Basic Information
   title: string;
   username: string;
+  globalUsername: string;
   company: string;
   tagline: string;
   profession: string;
