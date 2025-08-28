@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Edit3, 
-  Trash2, 
-  Eye, 
-  Share2, 
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Plus,
+  Edit3,
+  Trash2,
+  Eye,
+  Share2,
   Download,
   Settings,
   LogOut,
@@ -33,20 +33,20 @@ import {
   MessageCircle,
   ExternalLink,
   Upload,
-  X
-} from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
-import { supabase } from '../lib/supabase';
-import { CardPreview } from './CardPreview';
-import { ImageUpload } from './ImageUpload';
-import { MediaUpload } from './MediaUpload';
-import { ReviewsManager } from './ReviewsManager';
-import type { Database } from '../lib/supabase';
-import { useNavigate } from 'react-router-dom';
+  X,
+} from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
+import { supabase } from "../lib/supabase";
+import { CardPreview } from "./CardPreview";
+import { ImageUpload } from "./ImageUpload";
+import { MediaUpload } from "./MediaUpload";
+import { ReviewsManager } from "./ReviewsManager";
+import type { Database } from "../lib/supabase";
+import { useNavigate } from "react-router-dom";
 
-type BusinessCard = Database['public']['Tables']['business_cards']['Row'];
-type SocialLink = Database['public']['Tables']['social_links']['Row'];
-type Profile = Database['public']['Tables']['profiles']['Row'];
+type BusinessCard = Database["public"]["Tables"]["business_cards"]["Row"];
+type SocialLink = Database["public"]["Tables"]["social_links"]["Row"];
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 interface FormData {
   // Basic Information
@@ -56,7 +56,7 @@ interface FormData {
   tagline: string;
   profession: string;
   avatar_url: string;
-  
+
   // Contact Information
   phone: string;
   whatsapp: string;
@@ -64,7 +64,7 @@ interface FormData {
   website: string;
   address: string;
   map_link: string;
-  
+
   // Theme and Layout
   theme: {
     primary: string;
@@ -84,7 +84,7 @@ interface FormData {
 
 interface MediaItem {
   id: string;
-  type: 'image' | 'video' | 'document';
+  type: "image" | "video" | "document";
   url: string;
   title: string;
   description?: string;
@@ -105,35 +105,166 @@ interface Review {
 }
 
 const SOCIAL_PLATFORMS = [
-  { name: 'Facebook', icon: Facebook, placeholder: 'facebook.com/username' },
-  { name: 'Instagram', icon: Instagram, placeholder: 'instagram.com/username' },
-  { name: 'Twitter', icon: Twitter, placeholder: 'twitter.com/username' },
-  { name: 'LinkedIn', icon: Linkedin, placeholder: 'linkedin.com/in/username' },
-  { name: 'YouTube', icon: Youtube, placeholder: 'youtube.com/@username' },
-  { name: 'WhatsApp', icon: MessageCircle, placeholder: 'wa.me/1234567890' },
-  { name: 'Telegram', icon: MessageCircle, placeholder: 't.me/username' },
-  { name: 'Custom Link', icon: ExternalLink, placeholder: 'https://yourlink.com' }
+  { name: "Facebook", icon: Facebook, placeholder: "facebook.com/username" },
+  { name: "Instagram", icon: Instagram, placeholder: "instagram.com/username" },
+  { name: "Twitter", icon: Twitter, placeholder: "twitter.com/username" },
+  { name: "LinkedIn", icon: Linkedin, placeholder: "linkedin.com/in/username" },
+  { name: "YouTube", icon: Youtube, placeholder: "youtube.com/@username" },
+  { name: "WhatsApp", icon: MessageCircle, placeholder: "wa.me/1234567890" },
+  { name: "Telegram", icon: MessageCircle, placeholder: "t.me/username" },
+  {
+    name: "Custom Link",
+    icon: ExternalLink,
+    placeholder: "https://yourlink.com",
+  },
 ];
 
 const THEME_PRESETS = [
-  { name: 'Ocean Blue', primary: '#3B82F6', secondary: '#1E40AF', background: '#FFFFFF', text: '#1F2937' },
-  { name: 'Forest Green', primary: '#10B981', secondary: '#047857', background: '#FFFFFF', text: '#1F2937' },
-  { name: 'Sunset Orange', primary: '#F59E0B', secondary: '#D97706', background: '#FFFFFF', text: '#1F2937' },
-  { name: 'Royal Purple', primary: '#8B5CF6', secondary: '#7C3AED', background: '#FFFFFF', text: '#1F2937' },
-  { name: 'Rose Pink', primary: '#EC4899', secondary: '#DB2777', background: '#FFFFFF', text: '#1F2937' },
-  { name: 'Dark Mode', primary: '#60A5FA', secondary: '#3B82F6', background: '#1F2937', text: '#F9FAFB' },
+  // Your given themes
+  {
+    name: "Ocean Blue",
+    primary: "#3B82F6",
+    secondary: "#1E40AF",
+    background: "#FFFFFF",
+    text: "#1F2937",
+  },
+  {
+    name: "Forest Green",
+    primary: "#10B981",
+    secondary: "#047857",
+    background: "#FFFFFF",
+    text: "#1F2937",
+  },
+  {
+    name: "Sunset Orange",
+    primary: "#F59E0B",
+    secondary: "#D97706",
+    background: "#FFFFFF",
+    text: "#1F2937",
+  },
+  {
+    name: "Royal Purple",
+    primary: "#8B5CF6",
+    secondary: "#7C3AED",
+    background: "#FFFFFF",
+    text: "#1F2937",
+  },
+  {
+    name: "Rose Pink",
+    primary: "#EC4899",
+    secondary: "#DB2777",
+    background: "#FFFFFF",
+    text: "#1F2937",
+  },
+  {
+    name: "Dark Mode",
+    primary: "#60A5FA",
+    secondary: "#3B82F6",
+    background: "#1F2937",
+    text: "#F9FAFB",
+  },
+
+  // New themes
+  // { name: 'Emerald Teal', primary: '#14B8A6', secondary: '#0D9488', background: '#FFFFFF', text: '#1F2937' },
+  // { name: 'Golden Glow', primary: '#FBBF24', secondary: '#B45309', background: '#FFFFFF', text: '#1F2937' },
+  // { name: 'Crimson Red', primary: '#EF4444', secondary: '#B91C1C', background: '#FFFFFF', text: '#1F2937' },
+  // { name: 'Lavender Mist', primary: '#A78BFA', secondary: '#6D28D9', background: '#FFFFFF', text: '#1F2937' },
+  // { name: 'Aqua Wave', primary: '#06B6D4', secondary: '#0E7490', background: '#FFFFFF', text: '#1F2937' },
+  // { name: 'Coffee Brown', primary: '#8B4513', secondary: '#5C3317', background: '#FFFFFF', text: '#1F2937' },
+  // { name: 'Steel Gray', primary: '#64748B', secondary: '#1E293B', background: '#FFFFFF', text: '#1F2937' },
+  // { name: 'Mint Fresh', primary: '#34D399', secondary: '#059669', background: '#FFFFFF', text: '#1F2937' },
+  // { name: 'Amber Night', primary: '#F97316', secondary: '#9A3412', background: '#1F2937', text: '#F9FAFB' },
+  //  { name: 'Dark Ocean', primary: '#38BDF8', secondary: '#0EA5E9', background: '#0F172A', text: '#F9FAFB' },
+  {
+    name: "Cyber Purple",
+    primary: "#A855F7",
+    secondary: "#7C3AED",
+    background: "#1E1B29",
+    text: "#EDE9FE",
+  },
+  {
+    name: "Neon Green",
+    primary: "#22C55E",
+    secondary: "#16A34A",
+    background: "#111827",
+    text: "#F9FAFB",
+  },
+  {
+    name: "Amber Night",
+    primary: "#F59E0B",
+    secondary: "#D97706",
+    background: "#1C1917",
+    text: "#F5F5F4",
+  },
+  {
+    name: "Ruby Dark",
+    primary: "#EF4444",
+    secondary: "#B91C1C",
+    background: "#1F1F1F",
+    text: "#F9FAFB",
+  },
+  {
+    name: "Teal Glow",
+    primary: "#2DD4BF",
+    secondary: "#0D9488",
+    background: "#0D1B1E",
+    text: "#F0FDFA",
+  },
+  {
+    name: "Midnight Blue",
+    primary: "#3B82F6",
+    secondary: "#1E40AF",
+    background: "#0A0E1A",
+    text: "#E2E8F0",
+  },
+  {
+    name: "Pink Dream",
+    primary: "#F472B6",
+    secondary: "#DB2777",
+    background: "#1E1E2E",
+    text: "#FDF2F8",
+  },
+  {
+    name: "Steel Dark",
+    primary: "#94A3B8",
+    secondary: "#475569",
+    background: "#111827",
+    text: "#F9FAFB",
+  },
 ];
 
 const PROFESSIONS = [
-  'Doctor', 'Developer', 'Designer', 'Consultant', 'Teacher', 'Engineer',
-  'Restaurant', 'Shop', 'Salon', 'Gym', 'Photographer', 'Artist',
-  'Lawyer', 'Accountant', 'Real Estate', 'Marketing', 'Other'
+  "Doctor",
+  "Developer",
+  "Designer",
+  "Consultant",
+  "Teacher",
+  "Engineer",
+  "Restaurant",
+  "Shop",
+  "Salon",
+  "Gym",
+  "Photographer",
+  "Artist",
+  "Lawyer",
+  "Accountant",
+  "Real Estate",
+  "Marketing",
+  "Other",
 ];
 
 export const AdminPanel: React.FC = () => {
   const { user, signOut, loading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'basic' | 'contact' | 'social' | 'media' | 'reviews' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<
+    | "dashboard"
+    | "basic"
+    | "contact"
+    | "social"
+    | "media"
+    | "reviews"
+    | "settings"
+  >("dashboard");
   const [businessCard, setBusinessCard] = useState<BusinessCard | null>(null);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
@@ -141,34 +272,36 @@ export const AdminPanel: React.FC = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [saving, setSaving] = useState(false);
   const [hasCard, setHasCard] = useState(false);
+  const [showHeader, setShowHeader] = useState(true);
+  const lastScrollY = useRef(window.scrollY);
 
   const [formData, setFormData] = useState<FormData>({
-    title: '',
-    username: '',
-    company: '',
-    tagline: '',
-    profession: '',
-    avatar_url: '',
-    phone: '',
-    whatsapp: '',
-    email: user?.email || '',
-    website: '',
-    address: '',
-    map_link: '',
+    title: "",
+    username: "",
+    company: "",
+    tagline: "",
+    profession: "",
+    avatar_url: "",
+    phone: "",
+    whatsapp: "",
+    email: user?.email || "",
+    website: "",
+    address: "",
+    map_link: "",
     theme: THEME_PRESETS[0],
-    shape: 'rounded',
+    shape: "rounded",
     layout: {
-      style: 'modern',
-      alignment: 'center',
-      font: 'Inter'
+      style: "modern",
+      alignment: "center",
+      font: "Inter",
     },
-    is_published: false
+    is_published: false,
   });
 
   const [newSocialLink, setNewSocialLink] = useState({
-    platform: 'Facebook',
-    username: '',
-    url: ''
+    platform: "Facebook",
+    username: "",
+    url: "",
   });
 
   useEffect(() => {
@@ -177,9 +310,27 @@ export const AdminPanel: React.FC = () => {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate('/', { replace: true });
+      navigate("/", { replace: true });
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY < 50) {
+        setShowHeader(true);
+        lastScrollY.current = window.scrollY;
+        return;
+      }
+      if (window.scrollY < lastScrollY.current) {
+        setShowHeader(true); // Scrolling up
+      } else {
+        setShowHeader(false); // Scrolling down
+      }
+      lastScrollY.current = window.scrollY;
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const loadData = async () => {
     if (!user) return;
@@ -187,9 +338,9 @@ export const AdminPanel: React.FC = () => {
     try {
       // Load profile
       const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
         .single();
 
       if (profileData) {
@@ -198,40 +349,44 @@ export const AdminPanel: React.FC = () => {
 
       // Load business card
       const { data: cardData } = await supabase
-        .from('business_cards')
-        .select('*')
-        .eq('user_id', user.id)
+        .from("business_cards")
+        .select("*")
+        .eq("user_id", user.id)
         .single();
 
       if (cardData) {
         setBusinessCard(cardData);
         setHasCard(true);
-        
+
         // Populate form with existing data
         setFormData({
-          title: cardData.title || '',
-          username: cardData.slug || '',
-          company: cardData.company || '',
-          tagline: cardData.bio || '',
-          profession: cardData.position || '',
-          avatar_url: cardData.avatar_url || '',
-          phone: cardData.phone || '',
-          whatsapp: '', // Add to database schema if needed
-          email: cardData.email || user.email || '',
-          website: cardData.website || '',
-          address: '', // Add to database schema if needed
-          map_link: '', // Add to database schema if needed
+          title: cardData.title || "",
+          username: cardData.slug || "",
+          company: cardData.company || "",
+          tagline: cardData.bio || "",
+          profession: cardData.position || "",
+          avatar_url: cardData.avatar_url || "",
+          phone: cardData.phone || "",
+          whatsapp: "", // Add to database schema if needed
+          email: cardData.email || user.email || "",
+          website: cardData.website || "",
+          address: "", // Add to database schema if needed
+          map_link: "", // Add to database schema if needed
           theme: (cardData.theme as any) || THEME_PRESETS[0],
-          shape: cardData.shape || 'rounded',
-          layout: (cardData.layout as any) || { style: 'modern', alignment: 'center', font: 'Inter' },
-          is_published: cardData.is_published
+          shape: cardData.shape || "rounded",
+          layout: (cardData.layout as any) || {
+            style: "modern",
+            alignment: "center",
+            font: "Inter",
+          },
+          is_published: cardData.is_published,
         });
 
         // Load social links
         const { data: socialData } = await supabase
-          .from('social_links')
-          .select('*')
-          .eq('card_id', cardData.id);
+          .from("social_links")
+          .select("*")
+          .eq("card_id", cardData.id);
 
         if (socialData) {
           setSocialLinks(socialData);
@@ -239,56 +394,60 @@ export const AdminPanel: React.FC = () => {
 
         // Load media items
         const { data: mediaData } = await supabase
-          .from('media_items')
-          .select('*')
-          .eq('card_id', cardData.id)
-          .eq('is_active', true)
-          .order('display_order');
+          .from("media_items")
+          .select("*")
+          .eq("card_id", cardData.id)
+          .eq("is_active", true)
+          .order("display_order");
 
         if (mediaData) {
-          setMediaItems(mediaData.map(item => ({
-            id: item.id,
-            type: item.type as 'image' | 'video' | 'document',
-            url: item.url,
-            title: item.title,
-            description: item.description || undefined,
-            thumbnail_url: item.thumbnail_url || undefined
-          })));
+          setMediaItems(
+            mediaData.map((item) => ({
+              id: item.id,
+              type: item.type as "image" | "video" | "document",
+              url: item.url,
+              title: item.title,
+              description: item.description || undefined,
+              thumbnail_url: item.thumbnail_url || undefined,
+            }))
+          );
         }
 
         // Load reviews
         const { data: reviewsData } = await supabase
-          .from('reviews')
-          .select('*')
-          .eq('card_id', cardData.id)
-          .eq('is_active', true)
-          .order('created_at', { ascending: false });
+          .from("reviews")
+          .select("*")
+          .eq("card_id", cardData.id)
+          .eq("is_active", true)
+          .order("created_at", { ascending: false });
 
         if (reviewsData) {
-          setReviews(reviewsData.map(review => ({
-            id: review.id,
-            reviewer_name: review.reviewer_name,
-            reviewer_email: review.reviewer_email || undefined,
-            reviewer_avatar: review.reviewer_avatar || undefined,
-            rating: review.rating,
-            comment: review.comment,
-            source_url: review.source_url || undefined,
-            is_verified: review.is_verified,
-            is_featured: review.is_featured,
-            created_at: review.created_at
-          })));
+          setReviews(
+            reviewsData.map((review) => ({
+              id: review.id,
+              reviewer_name: review.reviewer_name,
+              reviewer_email: review.reviewer_email || undefined,
+              reviewer_avatar: review.reviewer_avatar || undefined,
+              rating: review.rating,
+              comment: review.comment,
+              source_url: review.source_url || undefined,
+              is_verified: review.is_verified,
+              is_featured: review.is_featured,
+              created_at: review.created_at,
+            }))
+          );
         }
       } else {
         setHasCard(false);
         // Set default values for new card
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          title: profileData?.name || '',
-          email: user.email || ''
+          title: profileData?.name || "",
+          email: user.email || "",
         }));
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error("Error loading data:", error);
     }
   };
 
@@ -312,7 +471,7 @@ export const AdminPanel: React.FC = () => {
         shape: formData.shape,
         layout: formData.layout,
         is_published: formData.is_published,
-        slug: formData.username
+        slug: formData.username,
       };
 
       let cardId: string;
@@ -320,9 +479,9 @@ export const AdminPanel: React.FC = () => {
       if (businessCard) {
         // Update existing card
         const { data, error } = await supabase
-          .from('business_cards')
+          .from("business_cards")
           .update(cardData)
-          .eq('id', businessCard.id)
+          .eq("id", businessCard.id)
           .select()
           .single();
 
@@ -332,7 +491,7 @@ export const AdminPanel: React.FC = () => {
       } else {
         // Create new card
         const { data, error } = await supabase
-          .from('business_cards')
+          .from("business_cards")
           .insert(cardData)
           .select()
           .single();
@@ -344,28 +503,23 @@ export const AdminPanel: React.FC = () => {
       }
 
       // Update social links
-      await supabase
-        .from('social_links')
-        .delete()
-        .eq('card_id', cardId);
+      await supabase.from("social_links").delete().eq("card_id", cardId);
 
       if (socialLinks.length > 0) {
-        const socialLinksData = socialLinks.map(link => ({
+        const socialLinksData = socialLinks.map((link) => ({
           card_id: cardId,
           platform: link.platform,
           username: link.username,
-          url: link.url
+          url: link.url,
         }));
 
-        await supabase
-          .from('social_links')
-          .insert(socialLinksData);
+        await supabase.from("social_links").insert(socialLinksData);
       }
 
-      alert('Card saved successfully!');
+      alert("Card saved successfully!");
     } catch (error) {
-      console.error('Error saving card:', error);
-      alert('Failed to save card. Please try again.');
+      console.error("Error saving card:", error);
+      alert("Failed to save card. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -376,17 +530,17 @@ export const AdminPanel: React.FC = () => {
 
     const link: SocialLink = {
       id: Date.now().toString(),
-      card_id: '',
+      card_id: "",
       platform: newSocialLink.platform,
       username: newSocialLink.username,
       url: newSocialLink.url,
       created_at: new Date().toISOString(),
       display_order: 0,
-      is_active: true
+      is_active: true,
     };
 
     setSocialLinks([...socialLinks, link]);
-    setNewSocialLink({ platform: 'Facebook', username: '', url: '' });
+    setNewSocialLink({ platform: "Facebook", username: "", url: "" });
   };
 
   const removeSocialLink = (index: number) => {
@@ -395,7 +549,7 @@ export const AdminPanel: React.FC = () => {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    navigate("/");
   };
 
   if (loading) {
@@ -412,18 +566,26 @@ export const AdminPanel: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+      <header
+        className={`bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40 transition-transform duration-300 ${
+          showHeader ? "translate-y-0" : "-translate-y-full"
+        }`}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                 <CreditCard className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">Digital Business Card</h1>
+              <h1 className="text-xl font-bold text-gray-900 hidden sm:block">
+                Digital Business Card
+              </h1>
             </div>
-            
+
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">Welcome, {profile?.name || user?.email}</span>
+              <span className="text-sm text-gray-600  hidden sm:block">
+                Welcome, {profile?.name || user?.email}
+              </span>
               {hasCard && formData.is_published && (
                 <a
                   href={`/c/${businessCard?.id}`}
@@ -451,13 +613,13 @@ export const AdminPanel: React.FC = () => {
         {/* Navigation Tabs */}
         <div className="flex flex-wrap gap-2 bg-gray-100 p-1 rounded-lg mb-8">
           {[
-            { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-            { id: 'basic', label: 'Basic Info', icon: User },
-            { id: 'contact', label: 'Contact', icon: Phone },
-            { id: 'social', label: 'Social Media', icon: Globe },
-            { id: 'media', label: 'Media & Gallery', icon: Camera },
-            { id: 'reviews', label: 'Reviews', icon: Star },
-            { id: 'settings', label: 'Settings', icon: Settings }
+            { id: "dashboard", label: "Dashboard", icon: BarChart3 },
+            { id: "basic", label: "Basic Info", icon: User },
+            { id: "contact", label: "Contact", icon: Phone },
+            { id: "social", label: "Social Media", icon: Globe },
+            { id: "media", label: "Media & Gallery", icon: Camera },
+            { id: "reviews", label: "Reviews", icon: Star },
+            { id: "settings", label: "Settings", icon: Settings },
           ].map((tab) => {
             const Icon = tab.icon;
             return (
@@ -466,12 +628,12 @@ export const AdminPanel: React.FC = () => {
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
                   activeTab === tab.id
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? "bg-white text-blue-600 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-6 h-4" />
                   <span className="hidden sm:inline">{tab.label}</span>
                 </div>
               </button>
@@ -483,18 +645,24 @@ export const AdminPanel: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2">
-            {activeTab === 'dashboard' && (
+            {activeTab === "dashboard" && (
               <div className="space-y-6">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">Dashboard Overview</h2>
-                  
+                  <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                    Dashboard Overview
+                  </h2>
+
                   {!hasCard ? (
                     <div className="text-center py-12">
                       <CreditCard className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">Create Your Digital Business Card</h3>
-                      <p className="text-gray-600 mb-6">Get started by filling out your basic information.</p>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        Create Your Digital Business Card
+                      </h3>
+                      <p className="text-gray-600 mb-6">
+                        Get started by filling out your basic information.
+                      </p>
                       <button
-                        onClick={() => setActiveTab('basic')}
+                        onClick={() => setActiveTab("basic")}
                         className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
                       >
                         <Plus className="w-5 h-5" />
@@ -502,66 +670,124 @@ export const AdminPanel: React.FC = () => {
                       </button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="bg-blue-50 rounded-lg p-4">
-                        <div className="flex items-center gap-3">
-                          <Eye className="w-8 h-8 text-blue-600" />
-                          <div>
-                            <div className="text-2xl font-bold text-blue-900">{businessCard?.view_count || 0}</div>
-                            <div className="text-sm text-blue-600">Total Views</div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-green-50 rounded-lg p-4">
-                        <div className="flex items-center gap-3">
-                          <Share2 className="w-8 h-8 text-green-600" />
-                          <div>
-                            <div className="text-2xl font-bold text-green-900">{socialLinks.length}</div>
-                            <div className="text-sm text-green-600">Social Links</div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="bg-purple-50 rounded-lg p-4">
-                        <div className="flex items-center gap-3">
+                    // Add horizontal scroll for small screens
+                    <div className="overflow-x-auto">
+                      <div className="flex flex-row md:grid md:grid-cols-3 gap-4 min-w-[600px] md:min-w-0">
+                        {/* Status */}
+                        <div className="flex-1 bg-purple-50 rounded-lg p-4 flex items-center gap-3 min-w-[180px]">
                           <Globe className="w-8 h-8 text-purple-600" />
                           <div>
                             <div className="text-2xl font-bold text-purple-900">
-                              {formData.is_published ? 'Live' : 'Draft'}
+                              {formData.is_published ? "Live" : "Draft"}
                             </div>
-                            <div className="text-sm text-purple-600">Status</div>
+                            <div className="text-sm text-purple-600">
+                              Status
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Social Links */}
+                        <div className="flex-1 bg-green-50 rounded-lg p-4 flex items-center gap-3 min-w-[180px]">
+                          <Share2 className="w-8 h-8 text-green-600" />
+                          <div>
+                            <div className="text-2xl font-bold text-green-900">
+                              {socialLinks.length}
+                            </div>
+                            <div className="text-sm text-green-600">
+                              Social Links
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Views */}
+                        <div className="flex-1 bg-blue-50 rounded-lg p-4 flex items-center gap-3 min-w-[180px]">
+                          <Eye className="w-8 h-8 text-blue-600" />
+                          <div>
+                            <div className="text-2xl font-bold text-blue-900">
+                              {businessCard?.view_count || 0}
+                            </div>
+                            <div className="text-sm text-blue-600">
+                              Total Views
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
+                {/* Publish Settings */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Publish Your Card
+                  </h3>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-900">
+                        Make card publicly accessible
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Your card will be available at /{formData.username}
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.is_published}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            is_published: e.target.checked,
+                          })
+                        }
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                </div>
 
                 {hasCard && (
-                
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      Quick Actions
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <button
-                        onClick={() => setActiveTab('basic')}
+                        onClick={() => setActiveTab("basic")}
                         className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                       >
                         <Edit3 className="w-5 h-5 text-blue-600" />
                         <div className="text-left">
                           <div className="font-medium">Edit Basic Info</div>
-                          <div className="text-sm text-gray-600">Update your name, profession, etc.</div>
+                          <div className="text-sm text-gray-600  hidden sm:block">
+                            Update your name, profession, etc.
+                          </div>
                         </div>
                       </button>
-                      
+
                       <button
-                        onClick={() => setActiveTab('social')}
+                        onClick={() => setActiveTab("contact")}
+                        className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <Phone className="w-5 h-5 text-green-600" />
+                        <div className="text-left">
+                          <div className="font-medium">Edit Contacts Info</div>
+                          <div className="text-sm text-gray-600  hidden sm:block">
+                            Update Phone Num, Email, Address, etc.
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => setActiveTab("social")}
                         className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                       >
                         <Globe className="w-5 h-5 text-green-600" />
                         <div className="text-left">
                           <div className="font-medium">Manage Social Links</div>
-                          <div className="text-sm text-gray-600">Add or update social media</div>
+                          <div className="text-sm text-gray-600  hidden sm:block">
+                            Add or update social media
+                          </div>
                         </div>
                       </button>
                     </div>
@@ -570,31 +796,46 @@ export const AdminPanel: React.FC = () => {
               </div>
             )}
 
-            {activeTab === 'basic' && (
+            {activeTab === "basic" && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Basic Information</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Basic Information
+                </h2>
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Full Name / Business Name *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Full Name / Business Name *
+                      </label>
                       <input
                         type="text"
                         value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, title: e.target.value })
+                        }
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="Enter your full name or business name"
                       />
                     </div>
-                    
+
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Username (for live card) *</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Username (for live card) *
+                      </label>
                       <div className="relative">
-                        {/* <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">/{window.location.host}/c/</span> */} 
+                        {/* <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">/{window.location.host}/c/</span> */}
                         <input
                           type="text"
                           value={formData.username}
-                          onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-                          className="w-full pl-32 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              username: e.target.value
+                                .toLowerCase()
+                                .replace(/[^a-z0-9-]/g, ""),
+                            })
+                          }
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="username"
                         />
                       </div>
@@ -602,21 +843,29 @@ export const AdminPanel: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Company / Business</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Company / Business
+                    </label>
                     <input
                       type="text"
                       value={formData.company}
-                      onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, company: e.target.value })
+                      }
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Enter your company or business name"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tagline / Short Description</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tagline / Short Description
+                    </label>
                     <textarea
                       value={formData.tagline}
-                      onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, tagline: e.target.value })
+                      }
                       rows={3}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Brief description about yourself or your business"
@@ -624,53 +873,73 @@ export const AdminPanel: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Profession / Category</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Profession / Category
+                    </label>
                     <select
                       value={formData.profession}
-                      onChange={(e) => setFormData({ ...formData, profession: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, profession: e.target.value })
+                      }
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="">Select your profession</option>
-                      {PROFESSIONS.map(prof => (
-                        <option key={prof} value={prof}>{prof}</option>
+                      {PROFESSIONS.map((prof) => (
+                        <option key={prof} value={prof}>
+                          {prof}
+                        </option>
                       ))}
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Profile Photo / Logo</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Profile Photo / Logo
+                    </label>
                     <ImageUpload
                       currentImageUrl={formData.avatar_url}
-                      onImageChange={(url) => setFormData({ ...formData, avatar_url: url || '' })}
-                      userId={user?.id || ''}
+                      onImageChange={(url) =>
+                        setFormData({ ...formData, avatar_url: url || "" })
+                      }
+                      userId={user?.id || ""}
                     />
                   </div>
                 </div>
               </div>
             )}
 
-            {activeTab === 'contact' && (
+            {activeTab === "contact" && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Contact Information</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Contact Information
+                </h2>
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Mobile Number
+                      </label>
                       <input
                         type="tel"
                         value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, phone: e.target.value })
+                        }
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="+1 (555) 123-4567"
                       />
                     </div>
-                    
+
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">WhatsApp Number</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        WhatsApp Number
+                      </label>
                       <input
                         type="tel"
                         value={formData.whatsapp}
-                        onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, whatsapp: e.target.value })
+                        }
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="+1 (555) 123-4567"
                       />
@@ -679,22 +948,30 @@ export const AdminPanel: React.FC = () => {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Email Address
+                      </label>
                       <input
                         type="email"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="your@email.com"
                       />
                     </div>
-                    
+
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Website / Portfolio</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Website / Portfolio
+                      </label>
                       <input
                         type="url"
                         value={formData.website}
-                        onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, website: e.target.value })
+                        }
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="https://yourwebsite.com"
                       />
@@ -702,10 +979,14 @@ export const AdminPanel: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Address
+                    </label>
                     <textarea
                       value={formData.address}
-                      onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, address: e.target.value })
+                      }
                       rows={3}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Your business address"
@@ -713,11 +994,15 @@ export const AdminPanel: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Google Maps Link</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Google Maps Link
+                    </label>
                     <input
                       type="url"
                       value={formData.map_link}
-                      onChange={(e) => setFormData({ ...formData, map_link: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, map_link: e.target.value })
+                      }
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="https://maps.google.com/..."
                     />
@@ -726,35 +1011,60 @@ export const AdminPanel: React.FC = () => {
               </div>
             )}
 
-            {activeTab === 'social' && (
+            {activeTab === "social" && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Social Media Links</h2>
-                
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Social Media Links
+                </h2>
+
                 {/* Add Social Link */}
                 <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                  <h3 className="font-medium text-gray-900 mb-4">Add New Social Link</h3>
+                  <h3 className="font-medium text-gray-900 mb-4">
+                    Add New Social Link
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <select
                       value={newSocialLink.platform}
-                      onChange={(e) => setNewSocialLink({ ...newSocialLink, platform: e.target.value })}
+                      onChange={(e) =>
+                        setNewSocialLink({
+                          ...newSocialLink,
+                          platform: e.target.value,
+                        })
+                      }
                       className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      {SOCIAL_PLATFORMS.map(platform => (
-                        <option key={platform.name} value={platform.name}>{platform.name}</option>
+                      {SOCIAL_PLATFORMS.map((platform) => (
+                        <option key={platform.name} value={platform.name}>
+                          {platform.name}
+                        </option>
                       ))}
                     </select>
                     <input
                       type="text"
                       value={newSocialLink.username}
-                      onChange={(e) => setNewSocialLink({ ...newSocialLink, username: e.target.value })}
+                      onChange={(e) =>
+                        setNewSocialLink({
+                          ...newSocialLink,
+                          username: e.target.value,
+                        })
+                      }
                       placeholder="Username (optional)"
                       className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                     <input
                       type="url"
                       value={newSocialLink.url}
-                      onChange={(e) => setNewSocialLink({ ...newSocialLink, url: e.target.value })}
-                      placeholder={SOCIAL_PLATFORMS.find(p => p.name === newSocialLink.platform)?.placeholder || 'Profile URL'}
+                      onChange={(e) =>
+                        setNewSocialLink({
+                          ...newSocialLink,
+                          url: e.target.value,
+                        })
+                      }
+                      placeholder={
+                        SOCIAL_PLATFORMS.find(
+                          (p) => p.name === newSocialLink.platform
+                        )?.placeholder || "Profile URL"
+                      }
                       className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
@@ -770,19 +1080,28 @@ export const AdminPanel: React.FC = () => {
                 {/* Social Links List */}
                 <div className="space-y-3">
                   {socialLinks.map((link, index) => {
-                    const platform = SOCIAL_PLATFORMS.find(p => p.name === link.platform);
+                    const platform = SOCIAL_PLATFORMS.find(
+                      (p) => p.name === link.platform
+                    );
                     const Icon = platform?.icon || ExternalLink;
-                    
+
                     return (
-                      <div key={index} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
+                      >
                         <div className="flex items-center gap-3">
                           <Icon className="w-5 h-5 text-gray-600" />
                           <div>
                             <div className="font-medium">{link.platform}</div>
                             {link.username && (
-                              <div className="text-sm text-gray-600">@{link.username}</div>
+                              <div className="text-sm text-gray-600">
+                                @{link.username}
+                              </div>
                             )}
-                            <div className="text-sm text-blue-600 truncate max-w-xs">{link.url}</div>
+                            <div className="text-sm text-blue-600 truncate max-w-xs">
+                              {link.url}
+                            </div>
                           </div>
                         </div>
                         <button
@@ -794,39 +1113,49 @@ export const AdminPanel: React.FC = () => {
                       </div>
                     );
                   })}
-                  
+
                   {socialLinks.length === 0 && (
                     <div className="text-center py-8 text-gray-500">
-                      No social links added yet. Add your first social media link above.
+                      No social links added yet. Add your first social media
+                      link above.
                     </div>
                   )}
                 </div>
               </div>
             )}
 
-            {activeTab === 'media' && (
+            {activeTab === "media" && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Media & Gallery</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Media & Gallery
+                </h2>
                 {hasCard && businessCard ? (
                   <MediaUpload
                     cardId={businessCard.id}
                     mediaItems={mediaItems}
                     onMediaChange={setMediaItems}
-                    userId={user?.id || ''}
+                    userId={user?.id || ""}
                   />
                 ) : (
                   <div className="text-center py-12">
                     <Camera className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Save Your Card First</h3>
-                    <p className="text-gray-600">Please save your basic information before adding media files.</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Save Your Card First
+                    </h3>
+                    <p className="text-gray-600">
+                      Please save your basic information before adding media
+                      files.
+                    </p>
                   </div>
                 )}
               </div>
             )}
 
-            {activeTab === 'reviews' && (
+            {activeTab === "reviews" && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Customer Reviews</h2>
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Customer Reviews
+                </h2>
                 {hasCard && businessCard ? (
                   <ReviewsManager
                     cardId={businessCard.id}
@@ -836,44 +1165,56 @@ export const AdminPanel: React.FC = () => {
                 ) : (
                   <div className="text-center py-12">
                     <Star className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Save Your Card First</h3>
-                    <p className="text-gray-600">Please save your basic information before adding reviews.</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Save Your Card First
+                    </h3>
+                    <p className="text-gray-600">
+                      Please save your basic information before adding reviews.
+                    </p>
                   </div>
                 )}
               </div>
             )}
 
-            {activeTab === 'settings' && (
+            {activeTab === "settings" && (
               <div className="space-y-6">
                 {/* Theme Settings */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Design Settings</h2>
-                  
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                    Design Settings
+                  </h2>
+
                   <div className="space-y-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">Theme</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                        Theme
+                      </label>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         {THEME_PRESETS.map((theme) => (
                           <button
                             key={theme.name}
                             onClick={() => setFormData({ ...formData, theme })}
-                            className={`p-4 rounded-lg border-2 transition-all ${
+                            className={`p-4 rounded-lg border-2 transition-all w-full text-left ${
                               formData.theme.name === theme.name
-                                ? 'border-blue-500 bg-blue-50'
-                                : 'border-gray-200 hover:border-gray-300'
+                                ? "border-blue-500 bg-blue-50"
+                                : "border-gray-200 hover:border-gray-300"
                             }`}
                           >
-                            <div className="flex items-center gap-2 mb-2">
-                              <div
-                                className="w-4 h-4 rounded-full"
-                                style={{ backgroundColor: theme.primary }}
-                              />
-                              <div
-                                className="w-4 h-4 rounded-full"
-                                style={{ backgroundColor: theme.secondary }}
-                              />
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-6 h-4 rounded-full"
+                                  style={{ backgroundColor: theme.primary }}
+                                />
+                                <div
+                                  className="w-6 h-4 rounded-full"
+                                  style={{ backgroundColor: theme.secondary }}
+                                />
+                              </div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {theme.name}
+                              </div>
                             </div>
-                            <div className="text-sm font-medium text-gray-900">{theme.name}</div>
                           </button>
                         ))}
                       </div>
@@ -881,10 +1222,14 @@ export const AdminPanel: React.FC = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Card Shape</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Card Shape
+                        </label>
                         <select
                           value={formData.shape}
-                          onChange={(e) => setFormData({ ...formData, shape: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, shape: e.target.value })
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                           <option value="rectangle">Rectangle</option>
@@ -892,15 +1237,22 @@ export const AdminPanel: React.FC = () => {
                           <option value="circle">Circle</option>
                         </select>
                       </div>
-                      
+
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Layout Style</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Layout Style
+                        </label>
                         <select
                           value={formData.layout.style}
-                          onChange={(e) => setFormData({ 
-                            ...formData, 
-                            layout: { ...formData.layout, style: e.target.value }
-                          })}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              layout: {
+                                ...formData.layout,
+                                style: e.target.value,
+                              },
+                            })
+                          }
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                           <option value="modern">Modern</option>
@@ -915,17 +1267,28 @@ export const AdminPanel: React.FC = () => {
 
                 {/* Publish Settings */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Publish Settings</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Publish Settings
+                  </h3>
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-medium text-gray-900">Make card publicly accessible</div>
-                      <div className="text-sm text-gray-600">Your card will be available at /{formData.username}</div>
+                      <div className="font-medium text-gray-900">
+                        Make card publicly accessible
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Your card will be available at /{formData.username}
+                      </div>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
                         checked={formData.is_published}
-                        onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            is_published: e.target.checked,
+                          })
+                        }
                         className="sr-only peer"
                       />
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -938,13 +1301,13 @@ export const AdminPanel: React.FC = () => {
 
           {/* Sidebar - Preview */}
           <div className="lg:sticky lg:top-24 lg:h-fit">
-            <CardPreview 
-              formData={formData} 
+            <CardPreview
+              formData={formData}
               socialLinks={socialLinks}
               mediaItems={mediaItems}
               reviews={reviews}
             />
-            
+
             {/* Save Button */}
             <div className="mt-6">
               <button
