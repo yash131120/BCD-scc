@@ -343,16 +343,18 @@ export const AdminPanel: React.FC = () => {
       }
 
       // Update profile if needed
-      if (profile) {
+      if (profile && formData.title !== profile.name) {
         const { error: profileError } = await supabase
           .from('profiles')
           .update({
             name: formData.title,
-            avatar_url: formData.avatar_url,
           })
           .eq('id', user.id);
 
-        if (profileError) console.error('Profile update error:', profileError);
+        if (profileError) {
+          console.error('Profile update error:', profileError);
+          // Don't fail the entire save if profile update fails
+        }
       }
 
       alert('Business card saved successfully!');
