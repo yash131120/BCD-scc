@@ -72,7 +72,7 @@ export const PublicCard: React.FC = () => {
       const { data: socialLinks, error: socialError } = await supabase
         .from('social_links')
         .select('*')
-        .eq('card_id', cardId);
+        .eq('card_id', cardData.id);
 
       if (socialError) {
         throw new Error('Failed to load social links');
