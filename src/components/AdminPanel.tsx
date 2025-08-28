@@ -1,52 +1,58 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Plus,
-  Edit3,
-  Trash2,
-  Eye,
-  Share2,
-  Download,
-  Settings,
-  LogOut,
-  CreditCard,
-  Users,
-  BarChart3,
-  Palette,
-  Layout,
-  Globe,
+  User,
   Mail,
   Phone,
-  Instagram,
-  Linkedin,
-  Github,
-  Twitter,
-  Facebook,
-  Youtube,
-  MapPin,
+  Globe,
   Camera,
-  Video,
-  FileText,
-  Star,
+  Palette,
+  Layout,
+  Eye,
   Save,
-  User,
-  Building,
-  MessageCircle,
-  ExternalLink,
-  Upload,
+  LogOut,
+  Plus,
   X,
-} from "lucide-react";
-import { useAuth } from "../hooks/useAuth";
-import { supabase } from "../lib/supabase";
-import { CardPreview } from "./CardPreview";
-import { ImageUpload } from "./ImageUpload";
-import { MediaUpload } from "./MediaUpload";
-import { ReviewsManager } from "./ReviewsManager";
-import type { Database } from "../lib/supabase";
-import { useNavigate } from "react-router-dom";
+  ExternalLink,
+  Settings,
+  BarChart3,
+  Share2,
+  Download,
+  Copy,
+  Check,
+  Star,
+  Image as ImageIcon,
+  MessageCircle,
+  MapPin,
+} from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { supabase } from '../lib/supabase';
+import { ImageUpload } from './ImageUpload';
+import { CardPreview } from './CardPreview';
+import { MediaUpload } from './MediaUpload';
+import { ReviewsManager } from './ReviewsManager';
+import type { Database } from '../lib/supabase';
 
-type BusinessCard = Database["public"]["Tables"]["business_cards"]["Row"];
-type SocialLink = Database["public"]["Tables"]["social_links"]["Row"];
-type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+type BusinessCard = Database['public']['Tables']['business_cards']['Row'];
+type SocialLink = Database['public']['Tables']['social_links']['Row'];
+type Profile = Database['public']['Tables']['profiles']['Row'];
+
+interface MediaItem {
+  id: string;
+  type: 'image' | 'video' | 'document';
+  url: string;
+  title: string;
+  description?: string;
+  thumbnail_url?: string;
+}
+
+interface Review {
+  id: string;
+  reviewer_name: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+}
 
 interface FormData {
   // Basic Information
@@ -82,474 +88,338 @@ interface FormData {
   is_published: boolean;
 }
 
-interface MediaItem {
-  id: string;
-  type: "image" | "video" | "document";
-  url: string;
-  title: string;
-  description?: string;
-  thumbnail_url?: string;
-}
-
-interface Review {
-  id: string;
-  reviewer_name: string;
-  reviewer_email?: string;
-  reviewer_avatar?: string;
-  rating: number;
-  comment: string;
-  source_url?: string;
-  is_verified: boolean;
-  is_featured: boolean;
-  created_at: string;
-}
+const THEMES = [
+  {
+    name: 'Ocean Blue',
+    primary: '#3B82F6',
+    secondary: '#1E40AF',
+    background: '#FFFFFF',
+    text: '#1F2937',
+  },
+  {
+    name: 'Forest Green',
+    primary: '#10B981',
+    secondary: '#047857',
+    background: '#FFFFFF',
+    text: '#1F2937',
+  },
+  {
+    name: 'Sunset Orange',
+    primary: '#F59E0B',
+    secondary: '#D97706',
+    background: '#FFFFFF',
+    text: '#1F2937',
+  },
+  {
+    name: 'Royal Purple',
+    primary: '#8B5CF6',
+    secondary: '#7C3AED',
+    background: '#FFFFFF',
+    text: '#1F2937',
+  },
+  {
+    name: 'Rose Pink',
+    primary: '#EC4899',
+    secondary: '#DB2777',
+    background: '#FFFFFF',
+    text: '#1F2937',
+  },
+  {
+    name: 'Dark Mode',
+    primary: '#60A5FA',
+    secondary: '#3B82F6',
+    background: '#1F2937',
+    text: '#F9FAFB',
+  },
+];
 
 const SOCIAL_PLATFORMS = [
-  { name: "Facebook", icon: Facebook, placeholder: "facebook.com/username" },
-  { name: "Instagram", icon: Instagram, placeholder: "instagram.com/username" },
-  { name: "Twitter", icon: Twitter, placeholder: "twitter.com/username" },
-  { name: "LinkedIn", icon: Linkedin, placeholder: "linkedin.com/in/username" },
-  { name: "YouTube", icon: Youtube, placeholder: "youtube.com/@username" },
-  { name: "WhatsApp", icon: MessageCircle, placeholder: "wa.me/1234567890" },
-  { name: "Telegram", icon: MessageCircle, placeholder: "t.me/username" },
-  {
-    name: "Custom Link",
-    icon: ExternalLink,
-    placeholder: "https://yourlink.com",
-  },
-];
-
-const THEME_PRESETS = [
-  // Your given themes
-  {
-    name: "Ocean Blue",
-    primary: "#3B82F6",
-    secondary: "#1E40AF",
-    background: "#FFFFFF",
-    text: "#1F2937",
-  },
-  {
-    name: "Forest Green",
-    primary: "#10B981",
-    secondary: "#047857",
-    background: "#FFFFFF",
-    text: "#1F2937",
-  },
-  {
-    name: "Sunset Orange",
-    primary: "#F59E0B",
-    secondary: "#D97706",
-    background: "#FFFFFF",
-    text: "#1F2937",
-  },
-  {
-    name: "Royal Purple",
-    primary: "#8B5CF6",
-    secondary: "#7C3AED",
-    background: "#FFFFFF",
-    text: "#1F2937",
-  },
-  {
-    name: "Rose Pink",
-    primary: "#EC4899",
-    secondary: "#DB2777",
-    background: "#FFFFFF",
-    text: "#1F2937",
-  },
-  {
-    name: "Dark Mode",
-    primary: "#60A5FA",
-    secondary: "#3B82F6",
-    background: "#1F2937",
-    text: "#F9FAFB",
-  },
-
-  // New themes
-  // { name: 'Emerald Teal', primary: '#14B8A6', secondary: '#0D9488', background: '#FFFFFF', text: '#1F2937' },
-  // { name: 'Golden Glow', primary: '#FBBF24', secondary: '#B45309', background: '#FFFFFF', text: '#1F2937' },
-  // { name: 'Crimson Red', primary: '#EF4444', secondary: '#B91C1C', background: '#FFFFFF', text: '#1F2937' },
-  // { name: 'Lavender Mist', primary: '#A78BFA', secondary: '#6D28D9', background: '#FFFFFF', text: '#1F2937' },
-  // { name: 'Aqua Wave', primary: '#06B6D4', secondary: '#0E7490', background: '#FFFFFF', text: '#1F2937' },
-  // { name: 'Coffee Brown', primary: '#8B4513', secondary: '#5C3317', background: '#FFFFFF', text: '#1F2937' },
-  // { name: 'Steel Gray', primary: '#64748B', secondary: '#1E293B', background: '#FFFFFF', text: '#1F2937' },
-  // { name: 'Mint Fresh', primary: '#34D399', secondary: '#059669', background: '#FFFFFF', text: '#1F2937' },
-  // { name: 'Amber Night', primary: '#F97316', secondary: '#9A3412', background: '#1F2937', text: '#F9FAFB' },
-  //  { name: 'Dark Ocean', primary: '#38BDF8', secondary: '#0EA5E9', background: '#0F172A', text: '#F9FAFB' },
-  {
-    name: "Cyber Purple",
-    primary: "#A855F7",
-    secondary: "#7C3AED",
-    background: "#1E1B29",
-    text: "#EDE9FE",
-  },
-  {
-    name: "Neon Green",
-    primary: "#22C55E",
-    secondary: "#16A34A",
-    background: "#111827",
-    text: "#F9FAFB",
-  },
-  {
-    name: "Amber Night",
-    primary: "#F59E0B",
-    secondary: "#D97706",
-    background: "#1C1917",
-    text: "#F5F5F4",
-  },
-  {
-    name: "Ruby Dark",
-    primary: "#EF4444",
-    secondary: "#B91C1C",
-    background: "#1F1F1F",
-    text: "#F9FAFB",
-  },
-  {
-    name: "Teal Glow",
-    primary: "#2DD4BF",
-    secondary: "#0D9488",
-    background: "#0D1B1E",
-    text: "#F0FDFA",
-  },
-  {
-    name: "Midnight Blue",
-    primary: "#3B82F6",
-    secondary: "#1E40AF",
-    background: "#0A0E1A",
-    text: "#E2E8F0",
-  },
-  {
-    name: "Pink Dream",
-    primary: "#F472B6",
-    secondary: "#DB2777",
-    background: "#1E1E2E",
-    text: "#FDF2F8",
-  },
-  {
-    name: "Steel Dark",
-    primary: "#94A3B8",
-    secondary: "#475569",
-    background: "#111827",
-    text: "#F9FAFB",
-  },
-];
-
-const PROFESSIONS = [
-  "Doctor",
-  "Developer",
-  "Designer",
-  "Consultant",
-  "Teacher",
-  "Engineer",
-  "Restaurant",
-  "Shop",
-  "Salon",
-  "Gym",
-  "Photographer",
-  "Artist",
-  "Lawyer",
-  "Accountant",
-  "Real Estate",
-  "Marketing",
-  "Other",
+  'Instagram',
+  'LinkedIn',
+  'GitHub',
+  'Twitter',
+  'Facebook',
+  'You Tube',
+  'Website',
+  'WhatsApp',
+  'Telegram',
+  'Custom Link',
 ];
 
 export const AdminPanel: React.FC = () => {
-  const { user, signOut, loading } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<
-    | "dashboard"
-    | "basic"
-    | "contact"
-    | "social"
-    | "media"
-    | "reviews"
-    | "settings"
-  >("dashboard");
+  const [activeTab, setActiveTab] = useState('basic');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [businessCard, setBusinessCard] = useState<BusinessCard | null>(null);
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [hasCard, setHasCard] = useState(false);
-  const [showHeader, setShowHeader] = useState(true);
-  const lastScrollY = useRef(window.scrollY);
+  const [copied, setCopied] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
-    title: "",
-    username: "",
-    company: "",
-    tagline: "",
-    profession: "",
-    avatar_url: "",
-    phone: "",
-    whatsapp: "",
-    email: user?.email || "",
-    website: "",
-    address: "",
-    map_link: "",
-    theme: THEME_PRESETS[0],
-    shape: "rounded",
+    title: '',
+    username: '',
+    company: '',
+    tagline: '',
+    profession: '',
+    avatar_url: '',
+    phone: '',
+    whatsapp: '',
+    email: '',
+    website: '',
+    address: '',
+    map_link: '',
+    theme: THEMES[0],
+    shape: 'rectangle',
     layout: {
-      style: "modern",
-      alignment: "center",
-      font: "Inter",
+      style: 'modern',
+      alignment: 'center',
+      font: 'Inter',
     },
     is_published: false,
   });
 
   const [newSocialLink, setNewSocialLink] = useState({
-    platform: "Facebook",
-    username: "",
-    url: "",
+    platform: '',
+    username: '',
+    url: '',
   });
 
   useEffect(() => {
-    loadData();
+    if (user) {
+      loadUserData();
+    }
   }, [user]);
 
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/", { replace: true });
-    }
-  }, [user, loading, navigate]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY < 50) {
-        setShowHeader(true);
-        lastScrollY.current = window.scrollY;
-        return;
-      }
-      if (window.scrollY < lastScrollY.current) {
-        setShowHeader(true); // Scrolling up
-      } else {
-        setShowHeader(false); // Scrolling down
-      }
-      lastScrollY.current = window.scrollY;
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const loadData = async () => {
+  const loadUserData = async () => {
     if (!user) return;
 
     try {
+      setLoading(true);
+
       // Load profile
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
         .single();
 
-      if (profileData) {
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Profile error:', profileError);
+      } else if (profileData) {
         setProfile(profileData);
       }
 
       // Load business card
-      const { data: cardData } = await supabase
-        .from("business_cards")
-        .select("*")
-        .eq("user_id", user.id)
+      const { data: cardData, error: cardError } = await supabase
+        .from('business_cards')
+        .select('*')
+        .eq('user_id', user.id)
         .single();
 
-      if (cardData) {
+      if (cardError && cardError.code !== 'PGRST116') {
+        console.error('Card error:', cardError);
+      } else if (cardData) {
         setBusinessCard(cardData);
-        setHasCard(true);
+        
+        // Update form data with card data
+        const theme = cardData.theme as any || THEMES[0];
+        const layout = cardData.layout as any || {
+          style: 'modern',
+          alignment: 'center',
+          font: 'Inter',
+        };
 
-        // Populate form with existing data
         setFormData({
-          title: cardData.title || "",
-          username: cardData.slug || "",
-          company: cardData.company || "",
-          tagline: cardData.bio || "",
-          profession: cardData.position || "",
-          avatar_url: cardData.avatar_url || "",
-          phone: cardData.phone || "",
-          whatsapp: "", // Add to database schema if needed
-          email: cardData.email || user.email || "",
-          website: cardData.website || "",
-          address: "", // Add to database schema if needed
-          map_link: "", // Add to database schema if needed
-          theme: (cardData.theme as any) || THEME_PRESETS[0],
-          shape: cardData.shape || "rounded",
-          layout: (cardData.layout as any) || {
-            style: "modern",
-            alignment: "center",
-            font: "Inter",
-          },
-          is_published: cardData.is_published,
+          title: cardData.title || '',
+          username: cardData.slug || '',
+          company: cardData.company || '',
+          tagline: cardData.bio || '',
+          profession: cardData.position || '',
+          avatar_url: cardData.avatar_url || '',
+          phone: cardData.phone || '',
+          whatsapp: (cardData as any).whatsapp || '',
+          email: cardData.email || '',
+          website: cardData.website || '',
+          address: (cardData as any).address || '',
+          map_link: (cardData as any).map_link || '',
+          theme,
+          shape: cardData.shape || 'rectangle',
+          layout,
+          is_published: cardData.is_published || false,
         });
 
         // Load social links
-        const { data: socialData } = await supabase
-          .from("social_links")
-          .select("*")
-          .eq("card_id", cardData.id);
+        const { data: socialData, error: socialError } = await supabase
+          .from('social_links')
+          .select('*')
+          .eq('card_id', cardData.id)
+          .order('display_order');
 
-        if (socialData) {
-          setSocialLinks(socialData);
-        }
-
-        // Load media items
-        const { data: mediaData } = await supabase
-          .from("media_items")
-          .select("*")
-          .eq("card_id", cardData.id)
-          .eq("is_active", true)
-          .order("display_order");
-
-        if (mediaData) {
-          setMediaItems(
-            mediaData.map((item) => ({
-              id: item.id,
-              type: item.type as "image" | "video" | "document",
-              url: item.url,
-              title: item.title,
-              description: item.description || undefined,
-              thumbnail_url: item.thumbnail_url || undefined,
-            }))
-          );
-        }
-
-        // Load reviews
-        const { data: reviewsData } = await supabase
-          .from("reviews")
-          .select("*")
-          .eq("card_id", cardData.id)
-          .eq("is_active", true)
-          .order("created_at", { ascending: false });
-
-        if (reviewsData) {
-          setReviews(
-            reviewsData.map((review) => ({
-              id: review.id,
-              reviewer_name: review.reviewer_name,
-              reviewer_email: review.reviewer_email || undefined,
-              reviewer_avatar: review.reviewer_avatar || undefined,
-              rating: review.rating,
-              comment: review.comment,
-              source_url: review.source_url || undefined,
-              is_verified: review.is_verified,
-              is_featured: review.is_featured,
-              created_at: review.created_at,
-            }))
-          );
+        if (socialError) {
+          console.error('Social links error:', socialError);
+        } else {
+          setSocialLinks(socialData || []);
         }
       } else {
-        setHasCard(false);
-        // Set default values for new card
-        setFormData((prev) => ({
+        // Set default form data with user email
+        setFormData(prev => ({
           ...prev,
-          title: profileData?.name || "",
-          email: user.email || "",
+          email: user.email || '',
+          title: profileData?.name || user.email?.split('@')[0] || '',
         }));
       }
     } catch (error) {
-      console.error("Error loading data:", error);
+      console.error('Error loading user data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSaveCard = async () => {
+  const handleSave = async () => {
     if (!user) return;
 
+    setSaving(true);
     try {
-      setSaving(true);
+      let cardId = businessCard?.id;
 
-      const cardData = {
-        user_id: user.id,
-        title: formData.title,
-        company: formData.company,
-        position: formData.profession,
-        phone: formData.phone,
-        email: formData.email,
-        website: formData.website,
-        avatar_url: formData.avatar_url,
-        bio: formData.tagline,
-        theme: formData.theme,
-        shape: formData.shape,
-        layout: formData.layout,
-        is_published: formData.is_published,
-        slug: formData.username,
-      };
-
-      let cardId: string;
-
-      if (businessCard) {
-        // Update existing card
-        const { data, error } = await supabase
-          .from("business_cards")
-          .update(cardData)
-          .eq("id", businessCard.id)
+      if (!businessCard) {
+        // Create new business card
+        const { data: newCard, error: createError } = await supabase
+          .from('business_cards')
+          .insert({
+            user_id: user.id,
+            title: formData.title,
+            company: formData.company,
+            position: formData.profession,
+            phone: formData.phone,
+            email: formData.email,
+            website: formData.website,
+            avatar_url: formData.avatar_url,
+            bio: formData.tagline,
+            theme: formData.theme,
+            shape: formData.shape,
+            layout: formData.layout,
+            is_published: formData.is_published,
+            slug: formData.username || null,
+            whatsapp: formData.whatsapp,
+            address: formData.address,
+            map_link: formData.map_link,
+          })
           .select()
           .single();
 
-        if (error) throw error;
-        cardId = businessCard.id;
-        setBusinessCard(data);
+        if (createError) throw createError;
+        setBusinessCard(newCard);
+        cardId = newCard.id;
       } else {
-        // Create new card
-        const { data, error } = await supabase
-          .from("business_cards")
-          .insert(cardData)
-          .select()
-          .single();
+        // Update existing business card
+        const { error: updateError } = await supabase
+          .from('business_cards')
+          .update({
+            title: formData.title,
+            company: formData.company,
+            position: formData.profession,
+            phone: formData.phone,
+            email: formData.email,
+            website: formData.website,
+            avatar_url: formData.avatar_url,
+            bio: formData.tagline,
+            theme: formData.theme,
+            shape: formData.shape,
+            layout: formData.layout,
+            is_published: formData.is_published,
+            slug: formData.username || null,
+            whatsapp: formData.whatsapp,
+            address: formData.address,
+            map_link: formData.map_link,
+          })
+          .eq('id', businessCard.id);
 
-        if (error) throw error;
-        cardId = data.id;
-        setBusinessCard(data);
-        setHasCard(true);
+        if (updateError) throw updateError;
       }
 
-      // Update social links
-      await supabase.from("social_links").delete().eq("card_id", cardId);
+      // Update profile if needed
+      if (profile) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            name: formData.title,
+            avatar_url: formData.avatar_url,
+          })
+          .eq('id', user.id);
 
-      if (socialLinks.length > 0) {
-        const socialLinksData = socialLinks.map((link) => ({
-          card_id: cardId,
-          platform: link.platform,
-          username: link.username,
-          url: link.url,
-        }));
-
-        await supabase.from("social_links").insert(socialLinksData);
+        if (profileError) console.error('Profile update error:', profileError);
       }
 
-      alert("Card saved successfully!");
+      alert('Business card saved successfully!');
+      await loadUserData(); // Reload data
     } catch (error) {
-      console.error("Error saving card:", error);
-      alert("Failed to save card. Please try again.");
+      console.error('Save error:', error);
+      alert('Failed to save business card. Please try again.');
     } finally {
       setSaving(false);
     }
   };
 
-  const addSocialLink = () => {
-    if (!newSocialLink.url) return;
+  const handleAddSocialLink = async () => {
+    if (!businessCard || !newSocialLink.platform || !newSocialLink.url) {
+      alert('Please fill in all social link fields');
+      return;
+    }
 
-    const link: SocialLink = {
-      id: Date.now().toString(),
-      card_id: "",
-      platform: newSocialLink.platform,
-      username: newSocialLink.username,
-      url: newSocialLink.url,
-      created_at: new Date().toISOString(),
-      display_order: 0,
-      is_active: true,
-    };
+    try {
+      const { data, error } = await supabase
+        .from('social_links')
+        .insert({
+          card_id: businessCard.id,
+          platform: newSocialLink.platform,
+          username: newSocialLink.username,
+          url: newSocialLink.url,
+          display_order: socialLinks.length,
+        })
+        .select()
+        .single();
 
-    setSocialLinks([...socialLinks, link]);
-    setNewSocialLink({ platform: "Facebook", username: "", url: "" });
+      if (error) throw error;
+
+      setSocialLinks([...socialLinks, data]);
+      setNewSocialLink({ platform: '', username: '', url: '' });
+    } catch (error) {
+      console.error('Error adding social link:', error);
+      alert('Failed to add social link. Please try again.');
+    }
   };
 
-  const removeSocialLink = (index: number) => {
-    setSocialLinks(socialLinks.filter((_, i) => i !== index));
+  const handleRemoveSocialLink = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('social_links')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setSocialLinks(socialLinks.filter(link => link.id !== id));
+    } catch (error) {
+      console.error('Error removing social link:', error);
+      alert('Failed to remove social link. Please try again.');
+    }
   };
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/");
+    navigate('/');
+  };
+
+  const copyCardUrl = () => {
+    const url = `${window.location.origin}/c/${formData.username || businessCard?.slug || businessCard?.id}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   if (loading) {
@@ -563,32 +433,29 @@ export const AdminPanel: React.FC = () => {
     );
   }
 
+  const tabs = [
+    { id: 'basic', label: 'Basic Info', icon: User },
+    { id: 'contact', label: 'Contact', icon: Mail },
+    { id: 'social', label: 'Social Links', icon: Share2 },
+    { id: 'media', label: 'Media', icon: ImageIcon },
+    { id: 'reviews', label: 'Reviews', icon: Star },
+    { id: 'design', label: 'Design', icon: Palette },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header
-        className={`bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40 transition-transform duration-300 ${
-          showHeader ? "translate-y-0" : "-translate-y-full"
-        }`}
-      >
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40 transition-transform duration-300 translate-y-0">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <CreditCard className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-xl font-bold text-gray-900 hidden sm:block">
+            <div className="flex items-center gap-4">
+              <h1 className="text-xl font-bold text-gray-900">
                 Digital Business Card
               </h1>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600  hidden sm:block">
-                Welcome, {profile?.name || user?.email}
-              </span>
-              {hasCard && formData.is_published && (
+              {formData.username && (
                 <a
-                  href={`/c/${businessCard?.id}`}
+                  href={`/c/${formData.username}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
@@ -597,6 +464,27 @@ export const AdminPanel: React.FC = () => {
                   View Live Card
                 </a>
               )}
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={copyCardUrl}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copied ? 'Copied!' : 'Copy URL'}
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {saving ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
               <button
                 onClick={handleSignOut}
                 className="inline-flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
@@ -610,723 +498,595 @@ export const AdminPanel: React.FC = () => {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-2 bg-gray-100 p-1 rounded-lg mb-8">
-          {[
-            { id: "dashboard", label: "Dashboard", icon: BarChart3 },
-            { id: "basic", label: "Basic Info", icon: User },
-            { id: "contact", label: "Contact", icon: Phone },
-            { id: "social", label: "Social Media", icon: Globe },
-            { id: "media", label: "Media & Gallery", icon: Camera },
-            { id: "reviews", label: "Reviews", icon: Star },
-            { id: "settings", label: "Settings", icon: Settings },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                  activeTab === tab.id
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <Icon className="w-6 h-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            {activeTab === "dashboard" && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                    Dashboard Overview
-                  </h2>
-
-                  {!hasCard ? (
-                    <div className="text-center py-12">
-                      <CreditCard className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        Create Your Digital Business Card
-                      </h3>
-                      <p className="text-gray-600 mb-6">
-                        Get started by filling out your basic information.
-                      </p>
+          {/* Left Column - Form */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Tab Navigation */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="border-b border-gray-200">
+                <nav className="flex overflow-x-auto">
+                  {tabs.map((tab) => {
+                    const Icon = tab.icon;
+                    return (
                       <button
-                        onClick={() => setActiveTab("basic")}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex items-center gap-2 px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${
+                          activeTab === tab.id
+                            ? 'text-blue-600 bg-blue-50 border-b-2 border-blue-600'
+                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                        }`}
                       >
-                        <Plus className="w-5 h-5" />
-                        Get Started
+                        <Icon className="w-4 h-4" />
+                        {tab.label}
                       </button>
-                    </div>
-                  ) : (
-                    // Add horizontal scroll for small screens
-                    <div className="overflow-x-auto">
-                      <div className="flex flex-row md:grid md:grid-cols-3 gap-4 min-w-[600px] md:min-w-0">
-                        {/* Status */}
-                        <div className="flex-1 bg-purple-50 rounded-lg p-4 flex items-center gap-3 min-w-[180px]">
-                          <Globe className="w-8 h-8 text-purple-600" />
-                          <div>
-                            <div className="text-2xl font-bold text-purple-900">
-                              {formData.is_published ? "Live" : "Draft"}
-                            </div>
-                            <div className="text-sm text-purple-600">
-                              Status
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Social Links */}
-                        <div className="flex-1 bg-green-50 rounded-lg p-4 flex items-center gap-3 min-w-[180px]">
-                          <Share2 className="w-8 h-8 text-green-600" />
-                          <div>
-                            <div className="text-2xl font-bold text-green-900">
-                              {socialLinks.length}
-                            </div>
-                            <div className="text-sm text-green-600">
-                              Social Links
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Views */}
-                        <div className="flex-1 bg-blue-50 rounded-lg p-4 flex items-center gap-3 min-w-[180px]">
-                          <Eye className="w-8 h-8 text-blue-600" />
-                          <div>
-                            <div className="text-2xl font-bold text-blue-900">
-                              {businessCard?.view_count || 0}
-                            </div>
-                            <div className="text-sm text-blue-600">
-                              Total Views
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {/* Publish Settings */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Publish Your Card
-                  </h3>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        Make card publicly accessible
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Your card will be available at /{formData.username}
-                      </div>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.is_published}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            is_published: e.target.checked,
-                          })
-                        }
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
-                </div>
-
-                {hasCard && (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      Quick Actions
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <button
-                        onClick={() => setActiveTab("basic")}
-                        className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <Edit3 className="w-5 h-5 text-blue-600" />
-                        <div className="text-left">
-                          <div className="font-medium">Edit Basic Info</div>
-                          <div className="text-sm text-gray-600  hidden sm:block">
-                            Update your name, profession, etc.
-                          </div>
-                        </div>
-                      </button>
-
-                      <button
-                        onClick={() => setActiveTab("contact")}
-                        className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <Phone className="w-5 h-5 text-green-600" />
-                        <div className="text-left">
-                          <div className="font-medium">Edit Contacts Info</div>
-                          <div className="text-sm text-gray-600  hidden sm:block">
-                            Update Phone Num, Email, Address, etc.
-                          </div>
-                        </div>
-                      </button>
-
-                      <button
-                        onClick={() => setActiveTab("social")}
-                        className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <Globe className="w-5 h-5 text-green-600" />
-                        <div className="text-left">
-                          <div className="font-medium">Manage Social Links</div>
-                          <div className="text-sm text-gray-600  hidden sm:block">
-                            Add or update social media
-                          </div>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                )}
+                    );
+                  })}
+                </nav>
               </div>
-            )}
 
-            {activeTab === "basic" && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Basic Information
-                </h2>
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Full Name / Business Name *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.title}
-                        onChange={(e) =>
-                          setFormData({ ...formData, title: e.target.value })
+              {/* Tab Content */}
+              <div className="p-6">
+                {/* Basic Info Tab */}
+                {activeTab === 'basic' && (
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-6">
+                      <ImageUpload
+                        currentImageUrl={formData.avatar_url}
+                        onImageChange={(url) =>
+                          setFormData({ ...formData, avatar_url: url || '' })
                         }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Enter your full name or business name"
+                        userId={user?.id || ''}
                       />
+                      <div className="flex-1 space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Full Name *
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.title}
+                            onChange={(e) =>
+                              setFormData({ ...formData, title: e.target.value })
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Your full name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Username (for live card) *
+                          </label>
+                          <div className="flex">
+                            <span className="inline-flex items-center px-3 rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                              /c/
+                            </span>
+                            <input
+                              type="text"
+                              value={formData.username}
+                              onChange={(e) =>
+                                setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') })
+                              }
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="yourname"
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            This will be your card's URL: /c/{formData.username || 'yourname'}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Username (for live card) *
-                      </label>
-                      <div className="relative">
-                        {/* <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">/{window.location.host}/c/</span> */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Company/Organization
+                        </label>
                         <input
                           type="text"
-                          value={formData.username}
+                          value={formData.company}
                           onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              username: e.target.value
-                                .toLowerCase()
-                                .replace(/[^a-z0-9-]/g, ""),
-                            })
+                            setFormData({ ...formData, company: e.target.value })
                           }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="username"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Your company name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Job Title/Profession
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.profession}
+                          onChange={(e) =>
+                            setFormData({ ...formData, profession: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Your job title"
                         />
                       </div>
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Company / Business
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.company}
-                      onChange={(e) =>
-                        setFormData({ ...formData, company: e.target.value })
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter your company or business name"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tagline / Short Description
-                    </label>
-                    <textarea
-                      value={formData.tagline}
-                      onChange={(e) =>
-                        setFormData({ ...formData, tagline: e.target.value })
-                      }
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Brief description about yourself or your business"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Profession / Category
-                    </label>
-                    <select
-                      value={formData.profession}
-                      onChange={(e) =>
-                        setFormData({ ...formData, profession: e.target.value })
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="">Select your profession</option>
-                      {PROFESSIONS.map((prof) => (
-                        <option key={prof} value={prof}>
-                          {prof}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Profile Photo / Logo
-                    </label>
-                    <ImageUpload
-                      currentImageUrl={formData.avatar_url}
-                      onImageChange={(url) =>
-                        setFormData({ ...formData, avatar_url: url || "" })
-                      }
-                      userId={user?.id || ""}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "contact" && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Contact Information
-                </h2>
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Mobile Number
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Tagline/Bio
                       </label>
-                      <input
-                        type="tel"
-                        value={formData.phone}
+                      <textarea
+                        value={formData.tagline}
                         onChange={(e) =>
-                          setFormData({ ...formData, phone: e.target.value })
+                          setFormData({ ...formData, tagline: e.target.value })
                         }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="+1 (555) 123-4567"
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="A brief description about yourself or your business"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        id="is_published"
+                        checked={formData.is_published}
+                        onChange={(e) =>
+                          setFormData({ ...formData, is_published: e.target.checked })
+                        }
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <label htmlFor="is_published" className="text-sm font-medium text-gray-700">
+                        Publish card (make it publicly accessible)
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* Contact Tab */}
+                {activeTab === 'contact' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <Mail className="w-4 h-4 inline mr-1" />
+                          Email Address
+                        </label>
+                        <input
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) =>
+                            setFormData({ ...formData, email: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="your@email.com"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <Phone className="w-4 h-4 inline mr-1" />
+                          Phone Number
+                        </label>
+                        <input
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) =>
+                            setFormData({ ...formData, phone: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="+1 (555) 123-4567"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <MessageCircle className="w-4 h-4 inline mr-1" />
+                          WhatsApp Number
+                        </label>
+                        <input
+                          type="tel"
+                          value={formData.whatsapp}
+                          onChange={(e) =>
+                            setFormData({ ...formData, whatsapp: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="+1 (555) 123-4567"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <Globe className="w-4 h-4 inline mr-1" />
+                          Website
+                        </label>
+                        <input
+                          type="url"
+                          value={formData.website}
+                          onChange={(e) =>
+                            setFormData({ ...formData, website: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="https://yourwebsite.com"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <MapPin className="w-4 h-4 inline mr-1" />
+                        Address
+                      </label>
+                      <textarea
+                        value={formData.address}
+                        onChange={(e) =>
+                          setFormData({ ...formData, address: e.target.value })
+                        }
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Your business address"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        WhatsApp Number
-                      </label>
-                      <input
-                        type="tel"
-                        value={formData.whatsapp}
-                        onChange={(e) =>
-                          setFormData({ ...formData, whatsapp: e.target.value })
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="+1 (555) 123-4567"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) =>
-                          setFormData({ ...formData, email: e.target.value })
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="your@email.com"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Website / Portfolio
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Google Maps Link
                       </label>
                       <input
                         type="url"
-                        value={formData.website}
+                        value={formData.map_link}
                         onChange={(e) =>
-                          setFormData({ ...formData, website: e.target.value })
+                          setFormData({ ...formData, map_link: e.target.value })
                         }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="https://yourwebsite.com"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="https://maps.google.com/..."
                       />
                     </div>
                   </div>
+                )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Address
-                    </label>
-                    <textarea
-                      value={formData.address}
-                      onChange={(e) =>
-                        setFormData({ ...formData, address: e.target.value })
-                      }
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Your business address"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Google Maps Link
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.map_link}
-                      onChange={(e) =>
-                        setFormData({ ...formData, map_link: e.target.value })
-                      }
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="https://maps.google.com/..."
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "social" && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Social Media Links
-                </h2>
-
-                {/* Add Social Link */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                  <h3 className="font-medium text-gray-900 mb-4">
-                    Add New Social Link
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <select
-                      value={newSocialLink.platform}
-                      onChange={(e) =>
-                        setNewSocialLink({
-                          ...newSocialLink,
-                          platform: e.target.value,
-                        })
-                      }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      {SOCIAL_PLATFORMS.map((platform) => (
-                        <option key={platform.name} value={platform.name}>
-                          {platform.name}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="text"
-                      value={newSocialLink.username}
-                      onChange={(e) =>
-                        setNewSocialLink({
-                          ...newSocialLink,
-                          username: e.target.value,
-                        })
-                      }
-                      placeholder="Username (optional)"
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <input
-                      type="url"
-                      value={newSocialLink.url}
-                      onChange={(e) =>
-                        setNewSocialLink({
-                          ...newSocialLink,
-                          url: e.target.value,
-                        })
-                      }
-                      placeholder={
-                        SOCIAL_PLATFORMS.find(
-                          (p) => p.name === newSocialLink.platform
-                        )?.placeholder || "Profile URL"
-                      }
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <button
-                    onClick={addSocialLink}
-                    disabled={!newSocialLink.url}
-                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                  >
-                    Add Social Link
-                  </button>
-                </div>
-
-                {/* Social Links List */}
-                <div className="space-y-3">
-                  {socialLinks.map((link, index) => {
-                    const platform = SOCIAL_PLATFORMS.find(
-                      (p) => p.name === link.platform
-                    );
-                    const Icon = platform?.icon || ExternalLink;
-
-                    return (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Icon className="w-5 h-5 text-gray-600" />
-                          <div>
-                            <div className="font-medium">{link.platform}</div>
-                            {link.username && (
-                              <div className="text-sm text-gray-600">
-                                @{link.username}
-                              </div>
-                            )}
-                            <div className="text-sm text-blue-600 truncate max-w-xs">
-                              {link.url}
-                            </div>
+                {/* Social Links Tab */}
+                {activeTab === 'social' && (
+                  <div className="space-y-6">
+                    {/* Add New Social Link */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h3 className="font-medium text-gray-900 mb-4">Add Social Link</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Platform
+                          </label>
+                          <select
+                            value={newSocialLink.platform}
+                            onChange={(e) =>
+                              setNewSocialLink({
+                                ...newSocialLink,
+                                platform: e.target.value,
+                              })
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="">Select platform</option>
+                            {SOCIAL_PLATFORMS.map((platform) => (
+                              <option key={platform} value={platform}>
+                                {platform}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Username (optional)
+                          </label>
+                          <input
+                            type="text"
+                            value={newSocialLink.username}
+                            onChange={(e) =>
+                              setNewSocialLink({
+                                ...newSocialLink,
+                                username: e.target.value,
+                              })
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="@username"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            URL
+                          </label>
+                          <div className="flex">
+                            <input
+                              type="url"
+                              value={newSocialLink.url}
+                              onChange={(e) =>
+                                setNewSocialLink({
+                                  ...newSocialLink,
+                                  url: e.target.value,
+                                })
+                              }
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="https://..."
+                            />
+                            <button
+                              onClick={handleAddSocialLink}
+                              className="px-4 py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 transition-colors"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
-                        <button
-                          onClick={() => removeSocialLink(index)}
-                          className="text-red-600 hover:text-red-800 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
                       </div>
-                    );
-                  })}
-
-                  {socialLinks.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      No social links added yet. Add your first social media
-                      link above.
                     </div>
-                  )}
-                </div>
-              </div>
-            )}
 
-            {activeTab === "media" && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Media & Gallery
-                </h2>
-                {hasCard && businessCard ? (
+                    {/* Existing Social Links */}
+                    <div className="space-y-3">
+                      {socialLinks.map((link) => (
+                        <div
+                          key={link.id}
+                          className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <Globe className="w-5 h-5 text-gray-600" />
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                {link.platform}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {link.username && `@${link.username} • `}
+                                <a
+                                  href={link.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800"
+                                >
+                                  {link.url}
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveSocialLink(link.id)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {socialLinks.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <Share2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                        <p>No social links added yet.</p>
+                        <p className="text-sm">Add your social media profiles to connect with visitors.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Media Tab */}
+                {activeTab === 'media' && businessCard && (
                   <MediaUpload
                     cardId={businessCard.id}
                     mediaItems={mediaItems}
                     onMediaChange={setMediaItems}
-                    userId={user?.id || ""}
+                    userId={user?.id || ''}
                   />
-                ) : (
-                  <div className="text-center py-12">
-                    <Camera className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Save Your Card First
-                    </h3>
-                    <p className="text-gray-600">
-                      Please save your basic information before adding media
-                      files.
-                    </p>
-                  </div>
                 )}
-              </div>
-            )}
 
-            {activeTab === "reviews" && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Customer Reviews
-                </h2>
-                {hasCard && businessCard ? (
+                {/* Reviews Tab */}
+                {activeTab === 'reviews' && businessCard && (
                   <ReviewsManager
                     cardId={businessCard.id}
                     reviews={reviews}
                     onReviewsChange={setReviews}
                   />
-                ) : (
-                  <div className="text-center py-12">
-                    <Star className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Save Your Card First
-                    </h3>
-                    <p className="text-gray-600">
-                      Please save your basic information before adding reviews.
-                    </p>
-                  </div>
                 )}
-              </div>
-            )}
 
-            {activeTab === "settings" && (
-              <div className="space-y-6">
-                {/* Theme Settings */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                    Design Settings
-                  </h2>
-
+                {/* Design Tab */}
+                {activeTab === 'design' && (
                   <div className="space-y-6">
+                    {/* Theme Selection */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Theme
-                      </label>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {THEME_PRESETS.map((theme) => (
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Choose Theme
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {THEMES.map((theme) => (
                           <button
                             key={theme.name}
                             onClick={() => setFormData({ ...formData, theme })}
-                            className={`p-4 rounded-lg border-2 transition-all w-full text-left ${
+                            className={`p-4 rounded-lg border-2 transition-all ${
                               formData.theme.name === theme.name
-                                ? "border-blue-500 bg-blue-50"
-                                : "border-gray-200 hover:border-gray-300"
+                                ? 'border-blue-500 ring-2 ring-blue-200'
+                                : 'border-gray-200 hover:border-gray-300'
                             }`}
                           >
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className="w-6 h-4 rounded-full"
-                                  style={{ backgroundColor: theme.primary }}
-                                />
-                                <div
-                                  className="w-6 h-4 rounded-full"
-                                  style={{ backgroundColor: theme.secondary }}
-                                />
-                              </div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {theme.name}
-                              </div>
+                            <div className="flex items-center gap-3 mb-2">
+                              <div
+                                className="w-6 h-6 rounded-full"
+                                style={{ backgroundColor: theme.primary }}
+                              />
+                              <div
+                                className="w-6 h-6 rounded-full"
+                                style={{ backgroundColor: theme.secondary }}
+                              />
+                            </div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {theme.name}
                             </div>
                           </button>
                         ))}
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Card Shape
-                        </label>
-                        <select
-                          value={formData.shape}
-                          onChange={(e) =>
-                            setFormData({ ...formData, shape: e.target.value })
-                          }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value="rectangle">Rectangle</option>
-                          <option value="rounded">Rounded</option>
-                          <option value="circle">Circle</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Layout Style
-                        </label>
-                        <select
-                          value={formData.layout.style}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              layout: {
-                                ...formData.layout,
-                                style: e.target.value,
-                              },
-                            })
-                          }
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value="modern">Modern</option>
-                          <option value="classic">Classic</option>
-                          <option value="minimal">Minimal</option>
-                          <option value="creative">Creative</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Publish Settings */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Publish Settings
-                  </h3>
-                  <div className="flex items-center justify-between">
+                    {/* Card Shape */}
                     <div>
-                      <div className="font-medium text-gray-900">
-                        Make card publicly accessible
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        Your card will be available at /{formData.username}
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Card Shape
+                      </h3>
+                      <div className="grid grid-cols-3 gap-4">
+                        {[
+                          { value: 'rectangle', label: 'Rectangle' },
+                          { value: 'rounded', label: 'Rounded' },
+                          { value: 'circle', label: 'Circle' },
+                        ].map((shape) => (
+                          <button
+                            key={shape.value}
+                            onClick={() =>
+                              setFormData({ ...formData, shape: shape.value })
+                            }
+                            className={`p-4 rounded-lg border-2 transition-all ${
+                              formData.shape === shape.value
+                                ? 'border-blue-500 ring-2 ring-blue-200'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <div className="text-sm font-medium text-gray-900">
+                              {shape.label}
+                            </div>
+                          </button>
+                        ))}
                       </div>
                     </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.is_published}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            is_published: e.target.checked,
-                          })
-                        }
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
 
-          {/* Sidebar - Preview */}
-          <div className="lg:sticky lg:top-24 lg:h-fit">
-            <CardPreview
-              formData={formData}
-              socialLinks={socialLinks}
-              mediaItems={mediaItems}
-              reviews={reviews}
-            />
+                    {/* Layout Options */}
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Layout Style
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {[
+                          { value: 'modern', label: 'Modern' },
+                          { value: 'classic', label: 'Classic' },
+                          { value: 'minimal', label: 'Minimal' },
+                          { value: 'creative', label: 'Creative' },
+                        ].map((style) => (
+                          <button
+                            key={style.value}
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                layout: { ...formData.layout, style: style.value },
+                              })
+                            }
+                            className={`p-4 rounded-lg border-2 transition-all ${
+                              formData.layout.style === style.value
+                                ? 'border-blue-500 ring-2 ring-blue-200'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <div className="text-sm font-medium text-gray-900">
+                              {style.label}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-            {/* Save Button */}
-            <div className="mt-6">
-              <button
-                onClick={handleSaveCard}
-                disabled={saving || !formData.title || !formData.username}
-                className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
-              >
-                {saving ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Saving...
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-2">
-                    <Save className="w-5 h-5" />
-                    Save Business Card
+                    {/* Text Alignment */}
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Text Alignment
+                      </h3>
+                      <div className="grid grid-cols-3 gap-4">
+                        {[
+                          { value: 'left', label: 'Left' },
+                          { value: 'center', label: 'Center' },
+                          { value: 'right', label: 'Right' },
+                        ].map((alignment) => (
+                          <button
+                            key={alignment.value}
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                layout: {
+                                  ...formData.layout,
+                                  alignment: alignment.value,
+                                },
+                              })
+                            }
+                            className={`p-4 rounded-lg border-2 transition-all ${
+                              formData.layout.alignment === alignment.value
+                                ? 'border-blue-500 ring-2 ring-blue-200'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <div className="text-sm font-medium text-gray-900">
+                              {alignment.label}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Font Selection */}
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900 mb-4">
+                        Font Family
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {[
+                          { value: 'Inter', label: 'Inter' },
+                          { value: 'Roboto', label: 'Roboto' },
+                          { value: 'Open Sans', label: 'Open Sans' },
+                          { value: 'Lato', label: 'Lato' },
+                          { value: 'Montserrat', label: 'Montserrat' },
+                          { value: 'Poppins', label: 'Poppins' },
+                        ].map((font) => (
+                          <button
+                            key={font.value}
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                layout: { ...formData.layout, font: font.value },
+                              })
+                            }
+                            className={`p-4 rounded-lg border-2 transition-all ${
+                              formData.layout.font === font.value
+                                ? 'border-blue-500 ring-2 ring-blue-200'
+                                : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                            style={{ fontFamily: font.value }}
+                          >
+                            <div className="text-sm font-medium text-gray-900">
+                              {font.label}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
-              </button>
+
+                {/* Analytics Tab */}
+                {activeTab === 'analytics' && (
+                  <div className="space-y-6">
+                    <div className="text-center py-12">
+                      <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        Analytics Coming Soon
+                      </h3>
+                      <p className="text-gray-600">
+                        Track views, clicks, and engagement on your business card.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Preview */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-24">
+              <CardPreview
+                formData={formData}
+                socialLinks={socialLinks}
+                mediaItems={mediaItems}
+                reviews={reviews}
+              />
             </div>
           </div>
         </div>
