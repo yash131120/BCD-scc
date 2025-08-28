@@ -115,7 +115,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+                className="p-1 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
                 title="Change image"
               >
                 {uploading ? (
