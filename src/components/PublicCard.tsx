@@ -20,11 +20,9 @@ import type { Database } from '../lib/supabase';
 
 type BusinessCard = Database['public']['Tables']['business_cards']['Row'];
 type SocialLink = Database['public']['Tables']['social_links']['Row'];
-type Profile = Database['public']['Tables']['profiles']['Row'];
 
 interface CardData {
   card: BusinessCard;
-  profile: Profile;
   socialLinks: SocialLink[];
 }
 
@@ -58,13 +56,10 @@ export const PublicCard: React.FC = () => {
     try {
       setLoading(true);
       
-      // Fetch business card with profile data
+      // Fetch business card
       const { data: cardData, error: cardError } = await supabase
         .from('business_cards')
-        .select(`
-          *,
-          profiles (*)
-        `)
+        .select('*')
         .eq('id', cardId)
         .eq('is_published', true)
         .single();
@@ -85,7 +80,6 @@ export const PublicCard: React.FC = () => {
 
       setCardData({
         card: cardData,
-        profile: cardData.profiles as Profile,
         socialLinks: socialLinks || []
       });
     } catch (err) {
@@ -150,7 +144,7 @@ export const PublicCard: React.FC = () => {
     );
   }
 
-  const { card, profile, socialLinks } = cardData;
+  const { card, socialLinks } = cardData;
   const theme = card.theme as any || {
     primary: '#3B82F6',
     secondary: '#1E40AF',
