@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   User,
   Mail,
@@ -24,23 +24,30 @@ import {
   Image as ImageIcon,
   MessageCircle,
   MapPin,
-} from 'lucide-react';
-import { useAuth } from '../hooks/useAuth';
-import { supabase } from '../lib/supabase';
-import { ImageUpload } from './ImageUpload';
-import { CardPreview } from './CardPreview';
-import { MediaUpload } from './MediaUpload';
-import { ReviewsManager } from './ReviewsManager';
-import { generateSocialLink, extractUsernameFromUrl, isPlatformAutoSyncable, generateAutoSyncedLinks, SOCIAL_PLATFORMS } from '../utils/socialUtils';
-import type { Database } from '../lib/supabase';
+} from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
+import { supabase } from "../lib/supabase";
+import { ImageUpload } from "./ImageUpload";
+import { CardPreview } from "./CardPreview";
+import { MediaUpload } from "./MediaUpload";
+import { ReviewsManager } from "./ReviewsManager";
+import {
+  generateSocialLink,
+  extractUsernameFromUrl,
+  isPlatformAutoSyncable,
+  generateAutoSyncedLinks,
+  SOCIAL_PLATFORMS,
+} from "../utils/socialUtils";
+import type { Database } from "../lib/supabase";
+import logo from "../assets/dbclogo.png";
 
-type BusinessCard = Database['public']['Tables']['business_cards']['Row'];
-type SocialLink = Database['public']['Tables']['social_links']['Row'];
-type Profile = Database['public']['Tables']['profiles']['Row'];
+type BusinessCard = Database["public"]["Tables"]["business_cards"]["Row"];
+type SocialLink = Database["public"]["Tables"]["social_links"]["Row"];
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 interface MediaItem {
   id: string;
-  type: 'image' | 'video' | 'document';
+  type: "image" | "video" | "document";
   url: string;
   title: string;
   description?: string;
@@ -92,53 +99,53 @@ interface FormData {
 
 const THEMES = [
   {
-    name: 'Ocean Blue',
-    primary: '#3B82F6',
-    secondary: '#1E40AF',
-    background: '#FFFFFF',
-    text: '#1F2937',
+    name: "Ocean Blue",
+    primary: "#3B82F6",
+    secondary: "#1E40AF",
+    background: "#FFFFFF",
+    text: "#1F2937",
   },
   {
-    name: 'Forest Green',
-    primary: '#10B981',
-    secondary: '#047857',
-    background: '#FFFFFF',
-    text: '#1F2937',
+    name: "Forest Green",
+    primary: "#10B981",
+    secondary: "#047857",
+    background: "#FFFFFF",
+    text: "#1F2937",
   },
   {
-    name: 'Sunset Orange',
-    primary: '#F59E0B',
-    secondary: '#D97706',
-    background: '#FFFFFF',
-    text: '#1F2937',
+    name: "Sunset Orange",
+    primary: "#F59E0B",
+    secondary: "#D97706",
+    background: "#FFFFFF",
+    text: "#1F2937",
   },
   {
-    name: 'Royal Purple',
-    primary: '#8B5CF6',
-    secondary: '#7C3AED',
-    background: '#FFFFFF',
-    text: '#1F2937',
+    name: "Royal Purple",
+    primary: "#8B5CF6",
+    secondary: "#7C3AED",
+    background: "#FFFFFF",
+    text: "#1F2937",
   },
   {
-    name: 'Rose Pink',
-    primary: '#EC4899',
-    secondary: '#DB2777',
-    background: '#FFFFFF',
-    text: '#1F2937',
+    name: "Rose Pink",
+    primary: "#EC4899",
+    secondary: "#DB2777",
+    background: "#FFFFFF",
+    text: "#1F2937",
   },
   {
-    name: 'Dark Mode',
-    primary: '#60A5FA',
-    secondary: '#3B82F6',
-    background: '#1F2937',
-    text: '#F9FAFB',
+    name: "Dark Mode",
+    primary: "#60A5FA",
+    secondary: "#3B82F6",
+    background: "#1F2937",
+    text: "#F9FAFB",
   },
 ];
 
 export const AdminPanel: React.FC = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('basic');
+  const [activeTab, setActiveTab] = useState("basic");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -149,32 +156,32 @@ export const AdminPanel: React.FC = () => {
   const [copied, setCopied] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
-    title: '',
-    username: '',
-    globalUsername: '',
-    company: '',
-    tagline: '',
-    profession: '',
-    avatar_url: '',
-    phone: '',
-    whatsapp: '',
-    email: '',
-    website: '',
-    address: '',
-    map_link: '',
+    title: "",
+    username: "",
+    globalUsername: "",
+    company: "",
+    tagline: "",
+    profession: "",
+    avatar_url: "",
+    phone: "",
+    whatsapp: "",
+    email: "",
+    website: "",
+    address: "",
+    map_link: "",
     theme: THEMES[0],
-    shape: 'rectangle',
+    shape: "rectangle",
     layout: {
-      style: 'modern',
-      alignment: 'center',
-      font: 'Inter',
+      style: "modern",
+      alignment: "center",
+      font: "Inter",
     },
     is_published: false,
   });
 
   const [newSocialLink, setNewSocialLink] = useState({
-    platform: '',
-    username: '',
+    platform: "",
+    username: "",
   });
 
   useEffect(() => {
@@ -191,80 +198,80 @@ export const AdminPanel: React.FC = () => {
 
       // Load profile
       const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*, global_username')
-        .eq('id', user.id)
+        .from("profiles")
+        .select("*, global_username")
+        .eq("id", user.id)
         .single();
 
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.error('Profile error:', profileError);
+      if (profileError && profileError.code !== "PGRST116") {
+        console.error("Profile error:", profileError);
       } else if (profileData) {
         setProfile(profileData);
       }
 
       // Load business card
       const { data: cardData, error: cardError } = await supabase
-        .from('business_cards')
-        .select('*')
-        .eq('user_id', user.id)
+        .from("business_cards")
+        .select("*")
+        .eq("user_id", user.id)
         .single();
 
-      if (cardError && cardError.code !== 'PGRST116') {
-        console.error('Card error:', cardError);
+      if (cardError && cardError.code !== "PGRST116") {
+        console.error("Card error:", cardError);
       } else if (cardData) {
         setBusinessCard(cardData);
-        
+
         // Update form data with card data
-        const theme = cardData.theme as any || THEMES[0];
-        const layout = cardData.layout as any || {
-          style: 'modern',
-          alignment: 'center',
-          font: 'Inter',
+        const theme = (cardData.theme as any) || THEMES[0];
+        const layout = (cardData.layout as any) || {
+          style: "modern",
+          alignment: "center",
+          font: "Inter",
         };
 
         setFormData({
-          title: cardData.title || '',
-          username: cardData.slug || '',
-          globalUsername: profileData?.global_username || '',
-          company: cardData.company || '',
-          tagline: cardData.bio || '',
-          profession: cardData.position || '',
-          avatar_url: cardData.avatar_url || '',
-          phone: cardData.phone || '',
-          whatsapp: (cardData as any).whatsapp || '',
-          email: cardData.email || '',
-          website: cardData.website || '',
-          address: (cardData as any).address || '',
-          map_link: (cardData as any).map_link || '',
+          title: cardData.title || "",
+          username: cardData.slug || "",
+          globalUsername: profileData?.global_username || "",
+          company: cardData.company || "",
+          tagline: cardData.bio || "",
+          profession: cardData.position || "",
+          avatar_url: cardData.avatar_url || "",
+          phone: cardData.phone || "",
+          whatsapp: (cardData as any).whatsapp || "",
+          email: cardData.email || "",
+          website: cardData.website || "",
+          address: (cardData as any).address || "",
+          map_link: (cardData as any).map_link || "",
           theme,
-          shape: cardData.shape || 'rectangle',
+          shape: cardData.shape || "rectangle",
           layout,
           is_published: cardData.is_published || false,
         });
 
         // Load social links
         const { data: socialData, error: socialError } = await supabase
-          .from('social_links')
-          .select('*, is_auto_synced')
-          .eq('card_id', cardData.id)
-          .order('display_order');
+          .from("social_links")
+          .select("*, is_auto_synced")
+          .eq("card_id", cardData.id)
+          .order("display_order");
 
         if (socialError) {
-          console.error('Social links error:', socialError);
+          console.error("Social links error:", socialError);
         } else {
           setSocialLinks(socialData || []);
         }
       } else {
         // Set default form data with user email
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          globalUsername: profileData?.global_username || '',
-          email: user.email || '',
-          title: profileData?.name || user.email?.split('@')[0] || '',
+          globalUsername: profileData?.global_username || "",
+          email: user.email || "",
+          title: profileData?.name || user.email?.split("@")[0] || "",
         }));
       }
     } catch (error) {
-      console.error('Error loading user data:', error);
+      console.error("Error loading user data:", error);
     } finally {
       setLoading(false);
     }
@@ -278,15 +285,15 @@ export const AdminPanel: React.FC = () => {
       // Update profile with global username
       if (profile) {
         const { error: profileError } = await supabase
-          .from('profiles')
+          .from("profiles")
           .update({
             name: formData.title,
             global_username: formData.globalUsername || null,
           })
-          .eq('id', user.id);
+          .eq("id", user.id);
 
         if (profileError) {
-          console.error('Profile update error:', profileError);
+          console.error("Profile update error:", profileError);
         }
       }
 
@@ -295,7 +302,7 @@ export const AdminPanel: React.FC = () => {
       if (!businessCard) {
         // Create new business card
         const { data: newCard, error: createError } = await supabase
-          .from('business_cards')
+          .from("business_cards")
           .insert({
             user_id: user.id,
             title: formData.title,
@@ -324,7 +331,7 @@ export const AdminPanel: React.FC = () => {
       } else {
         // Update existing business card
         const { error: updateError } = await supabase
-          .from('business_cards')
+          .from("business_cards")
           .update({
             title: formData.title,
             company: formData.company,
@@ -343,18 +350,18 @@ export const AdminPanel: React.FC = () => {
             address: formData.address,
             map_link: formData.map_link,
           })
-          .eq('id', businessCard.id);
+          .eq("id", businessCard.id);
 
         if (updateError) throw updateError;
       }
 
       // Profile update moved above
 
-      alert('Business card saved successfully!');
+      alert("Business card saved successfully!");
       await loadUserData(); // Reload data
     } catch (error) {
-      console.error('Save error:', error);
-      alert('Failed to save business card. Please try again.');
+      console.error("Save error:", error);
+      alert("Failed to save business card. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -362,23 +369,28 @@ export const AdminPanel: React.FC = () => {
 
   const handleAddSocialLink = async () => {
     if (!businessCard || !newSocialLink.platform || !newSocialLink.username) {
-      alert('Please fill in platform and username');
+      alert("Please fill in platform and username");
       return;
     }
 
     try {
-      const url = generateSocialLink(newSocialLink.platform, newSocialLink.username);
+      const url = generateSocialLink(
+        newSocialLink.platform,
+        newSocialLink.username
+      );
       const isAutoSyncable = isPlatformAutoSyncable(newSocialLink.platform);
-      
+
       const { data, error } = await supabase
-        .from('social_links')
+        .from("social_links")
         .insert({
           card_id: businessCard.id,
           platform: newSocialLink.platform,
           username: newSocialLink.username,
           url: url,
           display_order: socialLinks.length,
-          is_auto_synced: isAutoSyncable && newSocialLink.username === formData.globalUsername,
+          is_auto_synced:
+            isAutoSyncable &&
+            newSocialLink.username === formData.globalUsername,
         })
         .select()
         .single();
@@ -386,10 +398,10 @@ export const AdminPanel: React.FC = () => {
       if (error) throw error;
 
       setSocialLinks([...socialLinks, data]);
-      setNewSocialLink({ platform: '', username: '' });
+      setNewSocialLink({ platform: "", username: "" });
     } catch (error) {
-      console.error('Error adding social link:', error);
-      alert('Failed to add social link. Please try again.');
+      console.error("Error adding social link:", error);
+      alert("Failed to add social link. Please try again.");
     }
   };
 
@@ -398,58 +410,64 @@ export const AdminPanel: React.FC = () => {
     setFormData({ ...formData, globalUsername: newGlobalUsername });
 
     // If we have a business card and the global username changed
-    if (businessCard && oldGlobalUsername !== newGlobalUsername && newGlobalUsername) {
+    if (
+      businessCard &&
+      oldGlobalUsername !== newGlobalUsername &&
+      newGlobalUsername
+    ) {
       try {
         // Update auto-synced social links
-        const autoSyncedLinks = socialLinks.filter(link => link.is_auto_synced);
-        
+        const autoSyncedLinks = socialLinks.filter(
+          (link) => link.is_auto_synced
+        );
+
         for (const link of autoSyncedLinks) {
           if (isPlatformAutoSyncable(link.platform)) {
             const newUrl = generateSocialLink(link.platform, newGlobalUsername);
-            
+
             await supabase
-              .from('social_links')
+              .from("social_links")
               .update({
                 username: newGlobalUsername,
                 url: newUrl,
               })
-              .eq('id', link.id);
+              .eq("id", link.id);
           }
         }
 
         // Reload social links to reflect changes
         const { data: updatedSocialData } = await supabase
-          .from('social_links')
-          .select('*, is_auto_synced')
-          .eq('card_id', businessCard.id)
-          .order('display_order');
+          .from("social_links")
+          .select("*, is_auto_synced")
+          .eq("card_id", businessCard.id)
+          .order("display_order");
 
         if (updatedSocialData) {
           setSocialLinks(updatedSocialData);
         }
       } catch (error) {
-        console.error('Error updating auto-synced links:', error);
+        console.error("Error updating auto-synced links:", error);
       }
     }
   };
 
   const handleAutoSyncSocialLinks = async () => {
     if (!businessCard || !formData.globalUsername) {
-      alert('Please set a global username first');
+      alert("Please set a global username first");
       return;
     }
 
     try {
       const autoSyncedLinks = generateAutoSyncedLinks(formData.globalUsername);
-      const existingPlatforms = socialLinks.map(link => link.platform);
-      
+      const existingPlatforms = socialLinks.map((link) => link.platform);
+
       // Only add platforms that don't already exist
       const newLinks = autoSyncedLinks.filter(
-        link => !existingPlatforms.includes(link.platform)
+        (link) => !existingPlatforms.includes(link.platform)
       );
 
       if (newLinks.length === 0) {
-        alert('All auto-syncable platforms are already added');
+        alert("All auto-syncable platforms are already added");
         return;
       }
 
@@ -463,7 +481,7 @@ export const AdminPanel: React.FC = () => {
       }));
 
       const { data, error } = await supabase
-        .from('social_links')
+        .from("social_links")
         .insert(insertData)
         .select();
 
@@ -472,67 +490,77 @@ export const AdminPanel: React.FC = () => {
       setSocialLinks([...socialLinks, ...data]);
       alert(`Added ${newLinks.length} auto-synced social links`);
     } catch (error) {
-      console.error('Error auto-syncing social links:', error);
-      alert('Failed to auto-sync social links. Please try again.');
+      console.error("Error auto-syncing social links:", error);
+      alert("Failed to auto-sync social links. Please try again.");
     }
   };
 
   const handleSocialLinkEdit = async (linkId: string, newUsername: string) => {
     try {
-      const link = socialLinks.find(l => l.id === linkId);
+      const link = socialLinks.find((l) => l.id === linkId);
       if (!link) return;
 
       const newUrl = generateSocialLink(link.platform, newUsername);
       const wasAutoSynced = link.is_auto_synced;
-      
+
       // If user manually edits, it's no longer auto-synced
-      const isStillAutoSynced = wasAutoSynced && newUsername === formData.globalUsername;
+      const isStillAutoSynced =
+        wasAutoSynced && newUsername === formData.globalUsername;
 
       const { error } = await supabase
-        .from('social_links')
+        .from("social_links")
         .update({
           username: newUsername,
           url: newUrl,
           is_auto_synced: isStillAutoSynced,
         })
-        .eq('id', linkId);
+        .eq("id", linkId);
 
       if (error) throw error;
 
       // Update local state
-      setSocialLinks(socialLinks.map(l => 
-        l.id === linkId 
-          ? { ...l, username: newUsername, url: newUrl, is_auto_synced: isStillAutoSynced }
-          : l
-      ));
+      setSocialLinks(
+        socialLinks.map((l) =>
+          l.id === linkId
+            ? {
+                ...l,
+                username: newUsername,
+                url: newUrl,
+                is_auto_synced: isStillAutoSynced,
+              }
+            : l
+        )
+      );
     } catch (error) {
-      console.error('Error updating social link:', error);
+      console.error("Error updating social link:", error);
     }
   };
 
   const handleRemoveSocialLink = async (id: string) => {
     try {
       const { error } = await supabase
-        .from('social_links')
+        .from("social_links")
         .delete()
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
 
-      setSocialLinks(socialLinks.filter(link => link.id !== id));
+      setSocialLinks(socialLinks.filter((link) => link.id !== id));
     } catch (error) {
-      console.error('Error removing social link:', error);
-      alert('Failed to remove social link. Please try again.');
+      console.error("Error removing social link:", error);
+      alert("Failed to remove social link. Please try again.");
     }
   };
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    navigate("/");
   };
 
   const copyCardUrl = () => {
-    const url = `${window.location.origin}/c/${formData.username || businessCard?.slug || businessCard?.id}`;
+    const url = `${window.location.origin}/c/${
+      formData.username || businessCard?.slug || businessCard?.id
+    }`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -550,31 +578,33 @@ export const AdminPanel: React.FC = () => {
   }
 
   const tabs = [
-    { id: 'basic', label: 'Basic Info', icon: User },
-    { id: 'contact', label: 'Contact', icon: Mail },
-    { id: 'social', label: 'Social Links', icon: Share2 },
-    { id: 'media', label: 'Media', icon: ImageIcon },
-    { id: 'reviews', label: 'Reviews', icon: Star },
-    { id: 'design', label: 'Design', icon: Palette },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: "basic", label: "Basic Info", icon: User },
+    { id: "contact", label: "Contact", icon: Mail },
+    { id: "social", label: "Social Links", icon: Share2 },
+    { id: "media", label: "Media", icon: ImageIcon },
+    { id: "reviews", label: "Reviews", icon: Star },
+    { id: "design", label: "Design", icon: Palette },
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40 transition-transform duration-300 translate-y-0">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-0 sm:px-4 lg:px-4">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-4">
-              <h1 className="text-xl font-bold text-gray-900">
-                Digital Business Card
-              </h1>
+              {/* Logo */}
+              <img
+                src={logo}
+                alt="Digital Business Card Logo"
+                className="h-24 w-auto"
+              />
               {formData.username && (
                 <a
                   href={`/c/${formData.username}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
+                  className="inline-flex items-center gap-2 px-2 py-2 text-sm bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors border-2 border-green-500 "
                 >
                   <Eye className="w-4 h-4" />
                   View Live Card
@@ -586,8 +616,12 @@ export const AdminPanel: React.FC = () => {
                 onClick={copyCardUrl}
                 className="inline-flex items-center gap-2 px-3 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
               >
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                {copied ? 'Copied!' : 'Copy URL'}
+                {copied ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <Copy className="w-4 h-4" />
+                )}
+                {copied ? "Copied!" : "Copy URL"}
               </button>
               <button
                 onClick={handleSave}
@@ -599,7 +633,7 @@ export const AdminPanel: React.FC = () => {
                 ) : (
                   <Save className="w-4 h-4" />
                 )}
-                {saving ? 'Saving...' : 'Save Changes'}
+                {saving ? "Saving..." : "Save Changes"}
               </button>
               <button
                 onClick={handleSignOut}
@@ -617,8 +651,8 @@ export const AdminPanel: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Form */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Tab Navigation */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              {/* Tab Navigation */}
               <div className="border-b border-gray-200">
                 <nav className="flex overflow-x-auto">
                   {tabs.map((tab) => {
@@ -629,8 +663,8 @@ export const AdminPanel: React.FC = () => {
                         onClick={() => setActiveTab(tab.id)}
                         className={`flex items-center gap-2 px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors ${
                           activeTab === tab.id
-                            ? 'text-blue-600 bg-blue-50 border-b-2 border-blue-600'
-                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                            ? "text-blue-600 bg-blue-50 border-b-2 border-blue-600"
+                            : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                         }`}
                       >
                         <Icon className="w-4 h-4" />
@@ -644,15 +678,15 @@ export const AdminPanel: React.FC = () => {
               {/* Tab Content */}
               <div className="p-6">
                 {/* Basic Info Tab */}
-                {activeTab === 'basic' && (
+                {activeTab === "basic" && (
                   <div className="space-y-6">
                     <div className="flex items-center gap-6">
                       <ImageUpload
                         currentImageUrl={formData.avatar_url}
                         onImageChange={(url) =>
-                          setFormData({ ...formData, avatar_url: url || '' })
+                          setFormData({ ...formData, avatar_url: url || "" })
                         }
-                        userId={user?.id || ''}
+                        userId={user?.id || ""}
                       />
                       <div className="flex-1 space-y-4">
                         <div>
@@ -663,7 +697,10 @@ export const AdminPanel: React.FC = () => {
                             type="text"
                             value={formData.title}
                             onChange={(e) =>
-                              setFormData({ ...formData, title: e.target.value })
+                              setFormData({
+                                ...formData,
+                                title: e.target.value,
+                              })
                             }
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Your full name"
@@ -681,14 +718,20 @@ export const AdminPanel: React.FC = () => {
                               type="text"
                               value={formData.username}
                               onChange={(e) =>
-                                setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') })
+                                setFormData({
+                                  ...formData,
+                                  username: e.target.value
+                                    .toLowerCase()
+                                    .replace(/[^a-z0-9]/g, ""),
+                                })
                               }
                               className="flex-1 px-3 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder="yourname"
                             />
                           </div>
                           <p className="text-xs text-gray-500 mt-1">
-                            This will be your card's URL: /c/{formData.username || 'yourname'}
+                            This will be your card's URL: /c/
+                            {formData.username || "yourname"}
                           </p>
                         </div>
                         <div>
@@ -698,12 +741,19 @@ export const AdminPanel: React.FC = () => {
                           <input
                             type="text"
                             value={formData.globalUsername}
-                            onChange={(e) => handleGlobalUsernameChange(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                            onChange={(e) =>
+                              handleGlobalUsernameChange(
+                                e.target.value
+                                  .toLowerCase()
+                                  .replace(/[^a-z0-9_]/g, "")
+                              )
+                            }
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="yashvavaliya"
                           />
                           <p className="text-xs text-gray-500 mt-1">
-                            This username will auto-sync across all your social media platforms
+                            This username will auto-sync across all your social
+                            media platforms
                           </p>
                         </div>
                       </div>
@@ -718,7 +768,10 @@ export const AdminPanel: React.FC = () => {
                           type="text"
                           value={formData.company}
                           onChange={(e) =>
-                            setFormData({ ...formData, company: e.target.value })
+                            setFormData({
+                              ...formData,
+                              company: e.target.value,
+                            })
                           }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Your company name"
@@ -732,7 +785,10 @@ export const AdminPanel: React.FC = () => {
                           type="text"
                           value={formData.profession}
                           onChange={(e) =>
-                            setFormData({ ...formData, profession: e.target.value })
+                            setFormData({
+                              ...formData,
+                              profession: e.target.value,
+                            })
                           }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Your job title"
@@ -761,11 +817,17 @@ export const AdminPanel: React.FC = () => {
                         id="is_published"
                         checked={formData.is_published}
                         onChange={(e) =>
-                          setFormData({ ...formData, is_published: e.target.checked })
+                          setFormData({
+                            ...formData,
+                            is_published: e.target.checked,
+                          })
                         }
                         className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                       />
-                      <label htmlFor="is_published" className="text-sm font-medium text-gray-700">
+                      <label
+                        htmlFor="is_published"
+                        className="text-sm font-medium text-gray-700"
+                      >
                         Publish card (make it publicly accessible)
                       </label>
                     </div>
@@ -773,7 +835,7 @@ export const AdminPanel: React.FC = () => {
                 )}
 
                 {/* Contact Tab */}
-                {activeTab === 'contact' && (
+                {activeTab === "contact" && (
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -809,21 +871,7 @@ export const AdminPanel: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          <MessageCircle className="w-4 h-4 inline mr-1" />
-                          WhatsApp Number
-                        </label>
-                        <input
-                          type="tel"
-                          value={formData.whatsapp}
-                          onChange={(e) =>
-                            setFormData({ ...formData, whatsapp: e.target.value })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="+1 (555) 123-4567"
-                        />
-                      </div>
+                      
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           <Globe className="w-4 h-4 inline mr-1" />
@@ -833,7 +881,10 @@ export const AdminPanel: React.FC = () => {
                           type="url"
                           value={formData.website}
                           onChange={(e) =>
-                            setFormData({ ...formData, website: e.target.value })
+                            setFormData({
+                              ...formData,
+                              website: e.target.value,
+                            })
                           }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="https://yourwebsite.com"
@@ -875,15 +926,19 @@ export const AdminPanel: React.FC = () => {
                 )}
 
                 {/* Social Links Tab */}
-                {activeTab === 'social' && (
+                {activeTab === "social" && (
                   <div className="space-y-6">
                     {/* Global Username Info */}
                     {formData.globalUsername && (
                       <div className="bg-blue-50 rounded-lg p-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <h4 className="font-medium text-blue-900">Global Username: @{formData.globalUsername}</h4>
-                            <p className="text-sm text-blue-700">Auto-synced links will use this username</p>
+                            <h4 className="font-medium text-blue-900">
+                              Global Username: @{formData.globalUsername}
+                            </h4>
+                            <p className="text-sm text-blue-700">
+                              Auto-synced links will use this username
+                            </p>
                           </div>
                           <button
                             onClick={handleAutoSyncSocialLinks}
@@ -897,7 +952,9 @@ export const AdminPanel: React.FC = () => {
 
                     {/* Add New Social Link */}
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="font-medium text-gray-900 mb-4">Add Social Link</h3>
+                      <h3 className="font-medium text-gray-900 mb-4">
+                        Add Social Link
+                      </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -937,9 +994,11 @@ export const AdminPanel: React.FC = () => {
                               }
                               className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                               placeholder={
-                                newSocialLink.platform && SOCIAL_PLATFORMS[newSocialLink.platform]
-                                  ? SOCIAL_PLATFORMS[newSocialLink.platform].placeholder
-                                  : 'username'
+                                newSocialLink.platform &&
+                                SOCIAL_PLATFORMS[newSocialLink.platform]
+                                  ? SOCIAL_PLATFORMS[newSocialLink.platform]
+                                      .placeholder
+                                  : "username"
                               }
                             />
                             <button
@@ -959,7 +1018,9 @@ export const AdminPanel: React.FC = () => {
                         <div
                           key={link.id}
                           className={`flex items-center justify-between p-4 bg-white border rounded-lg ${
-                            link.is_auto_synced ? 'border-blue-200 bg-blue-50' : 'border-gray-200'
+                            link.is_auto_synced
+                              ? "border-blue-200 bg-blue-50"
+                              : "border-gray-200"
                           }`}
                         >
                           <div className="flex items-center gap-3">
@@ -968,7 +1029,9 @@ export const AdminPanel: React.FC = () => {
                             </div>
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="font-medium text-gray-900">{link.platform}</span>
+                                <span className="font-medium text-gray-900">
+                                  {link.platform}
+                                </span>
                                 {link.is_auto_synced && (
                                   <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
                                     Auto-synced
@@ -978,8 +1041,13 @@ export const AdminPanel: React.FC = () => {
                               <div className="flex items-center gap-2 mt-1">
                                 <input
                                   type="text"
-                                  value={link.username || ''}
-                                  onChange={(e) => handleSocialLinkEdit(link.id, e.target.value)}
+                                  value={link.username || ""}
+                                  onChange={(e) =>
+                                    handleSocialLinkEdit(
+                                      link.id,
+                                      e.target.value
+                                    )
+                                  }
                                   className="text-sm px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                                   placeholder="username"
                                 />
@@ -1008,7 +1076,10 @@ export const AdminPanel: React.FC = () => {
                       <div className="text-center py-8 text-gray-500">
                         <Share2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                         <p>No social links added yet.</p>
-                        <p className="text-sm mb-4">Add your social media profiles to connect with visitors.</p>
+                        <p className="text-sm mb-4">
+                          Add your social media profiles to connect with
+                          visitors.
+                        </p>
                         {formData.globalUsername && (
                           <button
                             onClick={handleAutoSyncSocialLinks}
@@ -1023,17 +1094,17 @@ export const AdminPanel: React.FC = () => {
                 )}
 
                 {/* Media Tab */}
-                {activeTab === 'media' && businessCard && (
+                {activeTab === "media" && businessCard && (
                   <MediaUpload
                     cardId={businessCard.id}
                     mediaItems={mediaItems}
                     onMediaChange={setMediaItems}
-                    userId={user?.id || ''}
+                    userId={user?.id || ""}
                   />
                 )}
 
                 {/* Reviews Tab */}
-                {activeTab === 'reviews' && businessCard && (
+                {activeTab === "reviews" && businessCard && (
                   <ReviewsManager
                     cardId={businessCard.id}
                     reviews={reviews}
@@ -1042,7 +1113,7 @@ export const AdminPanel: React.FC = () => {
                 )}
 
                 {/* Design Tab */}
-                {activeTab === 'design' && (
+                {activeTab === "design" && (
                   <div className="space-y-6">
                     {/* Theme Selection */}
                     <div>
@@ -1056,8 +1127,8 @@ export const AdminPanel: React.FC = () => {
                             onClick={() => setFormData({ ...formData, theme })}
                             className={`p-4 rounded-lg border-2 transition-all ${
                               formData.theme.name === theme.name
-                                ? 'border-blue-500 ring-2 ring-blue-200'
-                                : 'border-gray-200 hover:border-gray-300'
+                                ? "border-blue-500 ring-2 ring-blue-200"
+                                : "border-gray-200 hover:border-gray-300"
                             }`}
                           >
                             <div className="flex items-center gap-3 mb-2">
@@ -1085,9 +1156,9 @@ export const AdminPanel: React.FC = () => {
                       </h3>
                       <div className="grid grid-cols-3 gap-4">
                         {[
-                          { value: 'rectangle', label: 'Rectangle' },
-                          { value: 'rounded', label: 'Rounded' },
-                          { value: 'circle', label: 'Circle' },
+                          { value: "rectangle", label: "Rectangle" },
+                          { value: "rounded", label: "Rounded" },
+                          { value: "circle", label: "Circle" },
                         ].map((shape) => (
                           <button
                             key={shape.value}
@@ -1096,8 +1167,8 @@ export const AdminPanel: React.FC = () => {
                             }
                             className={`p-4 rounded-lg border-2 transition-all ${
                               formData.shape === shape.value
-                                ? 'border-blue-500 ring-2 ring-blue-200'
-                                : 'border-gray-200 hover:border-gray-300'
+                                ? "border-blue-500 ring-2 ring-blue-200"
+                                : "border-gray-200 hover:border-gray-300"
                             }`}
                           >
                             <div className="text-sm font-medium text-gray-900">
@@ -1115,23 +1186,26 @@ export const AdminPanel: React.FC = () => {
                       </h3>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {[
-                          { value: 'modern', label: 'Modern' },
-                          { value: 'classic', label: 'Classic' },
-                          { value: 'minimal', label: 'Minimal' },
-                          { value: 'creative', label: 'Creative' },
+                          { value: "modern", label: "Modern" },
+                          { value: "classic", label: "Classic" },
+                          { value: "minimal", label: "Minimal" },
+                          { value: "creative", label: "Creative" },
                         ].map((style) => (
                           <button
                             key={style.value}
                             onClick={() =>
                               setFormData({
                                 ...formData,
-                                layout: { ...formData.layout, style: style.value },
+                                layout: {
+                                  ...formData.layout,
+                                  style: style.value,
+                                },
                               })
                             }
                             className={`p-4 rounded-lg border-2 transition-all ${
                               formData.layout.style === style.value
-                                ? 'border-blue-500 ring-2 ring-blue-200'
-                                : 'border-gray-200 hover:border-gray-300'
+                                ? "border-blue-500 ring-2 ring-blue-200"
+                                : "border-gray-200 hover:border-gray-300"
                             }`}
                           >
                             <div className="text-sm font-medium text-gray-900">
@@ -1149,9 +1223,9 @@ export const AdminPanel: React.FC = () => {
                       </h3>
                       <div className="grid grid-cols-3 gap-4">
                         {[
-                          { value: 'left', label: 'Left' },
-                          { value: 'center', label: 'Center' },
-                          { value: 'right', label: 'Right' },
+                          { value: "left", label: "Left" },
+                          { value: "center", label: "Center" },
+                          { value: "right", label: "Right" },
                         ].map((alignment) => (
                           <button
                             key={alignment.value}
@@ -1166,8 +1240,8 @@ export const AdminPanel: React.FC = () => {
                             }
                             className={`p-4 rounded-lg border-2 transition-all ${
                               formData.layout.alignment === alignment.value
-                                ? 'border-blue-500 ring-2 ring-blue-200'
-                                : 'border-gray-200 hover:border-gray-300'
+                                ? "border-blue-500 ring-2 ring-blue-200"
+                                : "border-gray-200 hover:border-gray-300"
                             }`}
                           >
                             <div className="text-sm font-medium text-gray-900">
@@ -1185,25 +1259,28 @@ export const AdminPanel: React.FC = () => {
                       </h3>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         {[
-                          { value: 'Inter', label: 'Inter' },
-                          { value: 'Roboto', label: 'Roboto' },
-                          { value: 'Open Sans', label: 'Open Sans' },
-                          { value: 'Lato', label: 'Lato' },
-                          { value: 'Montserrat', label: 'Montserrat' },
-                          { value: 'Poppins', label: 'Poppins' },
+                          { value: "Inter", label: "Inter" },
+                          { value: "Roboto", label: "Roboto" },
+                          { value: "Open Sans", label: "Open Sans" },
+                          { value: "Lato", label: "Lato" },
+                          { value: "Montserrat", label: "Montserrat" },
+                          { value: "Poppins", label: "Poppins" },
                         ].map((font) => (
                           <button
                             key={font.value}
                             onClick={() =>
                               setFormData({
                                 ...formData,
-                                layout: { ...formData.layout, font: font.value },
+                                layout: {
+                                  ...formData.layout,
+                                  font: font.value,
+                                },
                               })
                             }
                             className={`p-4 rounded-lg border-2 transition-all ${
                               formData.layout.font === font.value
-                                ? 'border-blue-500 ring-2 ring-blue-200'
-                                : 'border-gray-200 hover:border-gray-300'
+                                ? "border-blue-500 ring-2 ring-blue-200"
+                                : "border-gray-200 hover:border-gray-300"
                             }`}
                             style={{ fontFamily: font.value }}
                           >
@@ -1213,21 +1290,6 @@ export const AdminPanel: React.FC = () => {
                           </button>
                         ))}
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Analytics Tab */}
-                {activeTab === 'analytics' && (
-                  <div className="space-y-6">
-                    <div className="text-center py-12">
-                      <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        Analytics Coming Soon
-                      </h3>
-                      <p className="text-gray-600">
-                        Track views, clicks, and engagement on your business card.
-                      </p>
                     </div>
                   </div>
                 )}
